@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { api } from "@/services/api";
 import VideoCard from "@/components/VideoCard";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Search, Settings, LogOut, Heart } from "lucide-react-native";
+import { Search, Settings, LogOut, Heart, Trash2 } from "lucide-react-native";
 import { StyledButton } from "@/components/StyledButton";
 import useHomeStore, { RowItem, Category } from "@/stores/homeStore";
 import useAuthStore from "@/stores/authStore";
@@ -23,6 +23,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = "dark";
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isDeleteMode, setIsDeleteMode] = useState(false); // 删除模式状态
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
@@ -53,38 +54,44 @@ export default function HomeScreen() {
     }, [refreshPlayRecords])
   );
 
-    // 双击返回退出逻辑（只限当前页面）
+  // 双击返回退出逻辑（只限当前页面）
   const backPressTimeRef = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-    const handleBackPress = () => {
-      const now = Date.now();
+      const handleBackPress = () => {
+        // 如果处于删除模式，返回键优先退出删除模式
+        if (isDeleteMode) {
+          setIsDeleteMode(false);
+          return true; // 拦截返回事件
+        }
 
-      // 如果还没按过返回键，或距离上次超过2秒
-      if (!backPressTimeRef.current || now - backPressTimeRef.current > 2000) {
-        backPressTimeRef.current = now;
-        ToastAndroid.show("再按一次返回键退出", ToastAndroid.SHORT);
-        return true; // 拦截返回事件，不退出
-      }
+        const now = Date.now();
 
-      // 两次返回键间隔小于2秒，退出应用
-      BackHandler.exitApp();
-      return true;
-    };
+        // 如果还没按过返回键，或距离上次超过2秒
+        if (!backPressTimeRef.current || now - backPressTimeRef.current > 2000) {
+          backPressTimeRef.current = now;
+          ToastAndroid.show("再按一次返回键退出", ToastAndroid.SHORT);
+          return true; // 拦截返回事件，不退出
+        }
 
-    // 仅限 Android 平台启用此功能
-    if (Platform.OS === "android") {
-      const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-
-      // 返回首页时重置状态
-      return () => {
-        backHandler.remove();
-        backPressTimeRef.current = null;
+        // 两次返回键间隔小于2秒，退出应用
+        BackHandler.exitApp();
+        return true;
       };
-    }
-  }, [])
-);
+
+      // 仅限 Android 平台启用此功能
+      if (Platform.OS === "android") {
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+
+        // 返回首页时重置状态
+        return () => {
+          backHandler.remove();
+          backPressTimeRef.current = null;
+        };
+      }
+    }, [isDeleteMode])
+  );
 
   // 统一的数据获取逻辑
   useEffect(() => {
@@ -163,6 +170,9 @@ export default function HomeScreen() {
     );
   };
 
+  // 判断是否是"最近播放"分类
+  const isPlayRecordsCategory = selectedCategory?.title === "最近播放";
+
   const renderContentItem = ({ item }: { item: RowItem; index: number }) => (
     <VideoCard
       id={item.id}
@@ -177,6 +187,8 @@ export default function HomeScreen() {
       sourceName={item.sourceName}
       totalEpisodes={item.totalEpisodes}
       api={api}
+      deleteType="playRecord"
+      isDeleteMode={isDeleteMode}
       onRecordDeleted={fetchInitialData}
     />
   );
@@ -210,6 +222,19 @@ export default function HomeScreen() {
           <StyledButton style={dynamicStyles.iconButton} onPress={() => router.push("/favorites")} variant="ghost">
             <Heart color={colorScheme === "dark" ? "white" : "black"} size={24} />
           </StyledButton>
+          {/* 只在"最近播放"分类显示删除按钮 */}
+          {isPlayRecordsCategory && (
+            <StyledButton
+              style={dynamicStyles.iconButton}
+              onPress={() => setIsDeleteMode(!isDeleteMode)}
+              variant="ghost"
+            >
+              <Trash2
+                color={isDeleteMode ? "#FF3B30" : (colorScheme === "dark" ? "white" : "black")}
+                size={24}
+              />
+            </StyledButton>
+          )}
           <StyledButton
             style={dynamicStyles.iconButton}
             onPress={() => router.push({ pathname: "/search" })}

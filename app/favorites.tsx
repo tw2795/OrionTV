@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, StyleSheet, Platform, BackHandler } from "react-native";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import useFavoritesStore from "@/stores/favoritesStore";
@@ -11,9 +11,15 @@ import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { getCommonResponsiveStyles } from "@/utils/ResponsiveStyles";
 import ResponsiveNavigation from "@/components/navigation/ResponsiveNavigation";
 import ResponsiveHeader from "@/components/navigation/ResponsiveHeader";
+import { StyledButton } from "@/components/StyledButton";
+import { Trash2 } from "lucide-react-native";
+import { Colors } from "@/constants/Colors";
+import { useFocusEffect } from "expo-router";
 
 export default function FavoritesScreen() {
   const { favorites, loading, error, fetchFavorites } = useFavoritesStore();
+  const [isDeleteMode, setIsDeleteMode] = useState(false); // 删除模式状态
+  const colorScheme = "dark";
 
   // 响应式布局配置
   const responsiveConfig = useResponsiveLayout();
@@ -23,6 +29,28 @@ export default function FavoritesScreen() {
   useEffect(() => {
     fetchFavorites();
   }, [fetchFavorites]);
+
+  // 返回键处理：优先退出删除模式
+  useFocusEffect(
+    useCallback(() => {
+      const handleBackPress = () => {
+        // 如果处于删除模式，返回键优先退出删除模式
+        if (isDeleteMode) {
+          setIsDeleteMode(false);
+          return true; // 拦截返回事件
+        }
+        return false; // 允许正常返回
+      };
+
+      // 仅限 Android 平台启用此功能
+      if (Platform.OS === "android") {
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+        return () => {
+          backHandler.remove();
+        };
+      }
+    }, [isDeleteMode])
+  );
 
   const renderItem = ({ item }: { item: Favorite & { key: string }; index: number }) => {
     const [source, id] = item.key.split("+");
@@ -35,8 +63,9 @@ export default function FavoritesScreen() {
         poster={item.cover}
         year={item.year}
         api={api}
-        episodeIndex={1}
-        progress={0}
+        deleteType="favorite"
+        isDeleteMode={isDeleteMode}
+        onRecordDeleted={fetchFavorites}
       />
     );
   };
@@ -49,6 +78,16 @@ export default function FavoritesScreen() {
       {deviceType === 'tv' && (
         <View style={dynamicStyles.headerContainer}>
           <ThemedText style={dynamicStyles.headerTitle}>我的收藏</ThemedText>
+          <StyledButton
+            style={dynamicStyles.deleteButton}
+            onPress={() => setIsDeleteMode(!isDeleteMode)}
+            variant="ghost"
+          >
+            <Trash2
+              color={isDeleteMode ? "#FF3B30" : (colorScheme === "dark" ? "white" : "black")}
+              size={24}
+            />
+          </StyledButton>
         </View>
       )}
       <CustomScrollView
@@ -92,16 +131,22 @@ const createResponsiveStyles = (deviceType: string, spacing: number) => {
     },
     headerContainer: {
       flexDirection: "row",
-      justifyContent: "space-between",
+      justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: spacing * 1.5,
       marginBottom: spacing / 2,
+      position: "relative",
     },
     headerTitle: {
       fontSize: isMobile ? 24 : isTablet ? 28 : 32,
       fontWeight: "bold",
       paddingTop: spacing,
       color: 'white',
+    },
+    deleteButton: {
+      borderRadius: 30,
+      marginLeft: spacing,
+      paddingTop: spacing,
     },
   });
 };

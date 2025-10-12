@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, forwardRef } from "react";
-import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Alert, Animated, Platform } from "react-native";
+import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Animated, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { Star, Play } from "lucide-react-native";
-import { PlayRecordManager } from "@/services/storage";
+import { Star, Play, Trash2 } from "lucide-react-native";
+import { BlurView } from "expo-blur";
 import { API } from "@/services/api";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import Logger from '@/utils/Logger';
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { DeleteType, showDeleteConfirmation } from "@/utils/deleteHelpers";
 
 const logger = Logger.withTag('VideoCardTV');
 
@@ -25,6 +26,8 @@ interface VideoCardProps extends React.ComponentProps<typeof TouchableOpacity> {
   totalEpisodes?: number; // 总集数
   onFocus?: () => void;
   onRecordDeleted?: () => void; // 添加回调属性
+  deleteType?: DeleteType; // 删除类型：'playRecord' 或 'favorite'
+  isDeleteMode?: boolean; // 是否处于删除模式
   api: API;
 }
 
@@ -42,6 +45,8 @@ const VideoCard = forwardRef<View, VideoCardProps>(
       episodeIndex,
       onFocus,
       onRecordDeleted,
+      deleteType = 'playRecord', // 默认为播放记录
+      isDeleteMode = false,
       api,
       playTime = 0,
     }: VideoCardProps,
@@ -109,40 +114,45 @@ const VideoCard = forwardRef<View, VideoCardProps>(
     }, [fadeAnim]);
 
     const handleLongPress = () => {
-      // Only allow long press for items with progress (play records)
-      if (progress === undefined) return;
+      // 根据删除类型决定是否允许长按删除
+      // 播放记录：必须有 progress
+      // 收藏：不需要 progress 检查
+      if (deleteType === 'playRecord' && progress === undefined) return;
 
       longPressTriggered.current = true;
 
-      // Show confirmation dialog to delete play record
-      Alert.alert("删除观看记录", `确定要删除"${title}"的观看记录吗？`, [
-        {
-          text: "取消",
-          style: "cancel",
+      // 使用统一的删除确认函数
+      showDeleteConfirmation({
+        source,
+        id,
+        title,
+        type: deleteType,
+        onSuccess: () => {
+          // 调用删除成功回调
+          if (onRecordDeleted) {
+            onRecordDeleted();
+          }
+          // 如果没有回调函数，则使用导航刷新作为备选方案
+          else if (router.canGoBack()) {
+            router.replace("/");
+          }
         },
-        {
-          text: "删除",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // Delete from local storage
-              await PlayRecordManager.remove(source, id);
+      });
+    };
 
-              // Call the onRecordDeleted callback
-              if (onRecordDeleted) {
-                onRecordDeleted();
-              }
-              // 如果没有回调函数，则使用导航刷新作为备选方案
-              else if (router.canGoBack()) {
-                router.replace("/");
-              }
-            } catch (error) {
-              logger.info("Failed to delete play record:", error);
-              Alert.alert("错误", "删除观看记录失败，请重试");
-            }
-          },
+    // 删除模式下点击删除 Layer
+    const handleDeleteClick = () => {
+      showDeleteConfirmation({
+        source,
+        id,
+        title,
+        type: deleteType,
+        onSuccess: () => {
+          if (onRecordDeleted) {
+            onRecordDeleted();
+          }
         },
-      ]);
+      });
     };
 
     // 是否是继续观看的视频
@@ -200,6 +210,21 @@ const VideoCard = forwardRef<View, VideoCardProps>(
               <View style={styles.sourceNameBadge}>
                 <Text style={styles.badgeText}>{sourceName}</Text>
               </View>
+            )}
+
+            {/* 删除模式的毛玻璃 Layer */}
+            {isDeleteMode && (
+              <Pressable
+                onPress={handleDeleteClick}
+                style={styles.deleteOverlay}
+              >
+                <BlurView intensity={20} style={styles.blurView}>
+                  <View style={styles.deleteContent}>
+                    <Trash2 size={40} color="#ffffff" />
+                    <ThemedText style={styles.deleteText}>删除</ThemedText>
+                  </View>
+                </BlurView>
+              </Pressable>
             )}
           </View>
           <View style={styles.infoContainer}>
@@ -359,5 +384,26 @@ const styles = StyleSheet.create({
   continueLabel: {
     color: Colors.dark.primary,
     fontSize: 12,
+  },
+  deleteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  blurView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.3)", // 半透明背景作为兜底
+  },
+  deleteContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 8,
   },
 });

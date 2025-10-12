@@ -48,7 +48,6 @@ Domain-specific stores with consistent patterns:
 - **settingsStore.ts** - App settings, API configuration, and user preferences
 - **remoteControlStore.ts** - Remote control server functionality and HTTP bridge
 - **authStore.ts** - User authentication state
-- **updateStore.ts** - Automatic update checking and version management
 - **favoritesStore.ts** - User favorites management
 
 ### Service Layer Pattern
@@ -57,7 +56,6 @@ Clean separation of concerns across service modules:
 - **api.ts** - External API integration with error handling and caching
 - **storage.ts** - AsyncStorage wrapper with typed interfaces
 - **remoteControlService.ts** - TCP-based HTTP server for external device control
-- **updateService.ts** - Automatic version checking and APK download management
 - **tcpHttpServer.ts** - Low-level TCP server implementation
 
 ### TV Remote Control System
@@ -136,9 +134,9 @@ This project uses a TV-first approach with responsive adaptations:
 - `/app` - Expo Router screens and navigation
 - `/components` - Reusable UI components (including `.tv.tsx` variants)
 - `/stores` - Zustand state management stores
-- `/services` - API, storage, remote control, and update services
+- `/services` - API, storage, and remote control services
 - `/hooks` - Custom React hooks including `useTVRemoteHandler`
-- `/constants` - App constants, theme definitions, and update configuration
+- `/constants` - App constants and theme definitions
 - `/assets` - Static assets including TV-specific icons and banners
 
 # important-instruction-reminders
