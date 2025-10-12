@@ -30,6 +30,15 @@ OrionTV is a React Native TVOS application for streaming video content, built wi
 - `yarn clean` - Clean cache and build artifacts
 - `yarn clean-modules` - Reinstall all node modules
 
+#### GitHub Actions Workflows
+- **Update yarn.lock** (`update-lockfile.yml`) - Manually triggered workflow to update and commit `yarn.lock` when dependencies change
+  - Use when: `package.json` is updated but `yarn.lock` is not synchronized
+  - Fixes: `--frozen-lockfile` errors in CI builds
+  - Location: GitHub Actions tab → "Update yarn.lock" → Run workflow
+- **Build Android APK** (`build-apk.yml`) - Manually triggered workflow to build and release Android TV APK
+  - Requires: `yarn.lock` must be in sync with `package.json`
+  - Output: APK file attached to GitHub Release
+
 ## Architecture Overview
 
 ### Multi-Platform Responsive Design
@@ -96,6 +105,8 @@ This project uses a TV-first approach with responsive adaptations:
 
 - Run `yarn prebuild` after adding new dependencies for native builds
 - Use `yarn copy-config` to apply TV-specific Android configurations
+- **Always commit `yarn.lock`** when updating dependencies in `package.json` to prevent CI build failures
+- If CI fails with `--frozen-lockfile` error, run the "Update yarn.lock" GitHub Actions workflow
 - TV components require focus management and remote control support
 - Test on both TV devices (Apple TV/Android TV) and responsive mobile/tablet layouts
 - All API calls are centralized in `/services` directory with error handling
@@ -108,6 +119,7 @@ This project uses a TV-first approach with responsive adaptations:
 - **TV Remote Handling**: Use `useTVRemoteHandler` hook for TV-specific interactions
 - **Focus Management**: TV components must handle focus states for remote navigation
 - **Shared Logic**: Place common logic in `/hooks` directory for reusability
+- **Delete Operations**: Use `deleteHelpers.ts` utilities for consistent delete confirmation dialogs and record deletion
 
 ## Common Development Tasks
 
@@ -136,6 +148,7 @@ This project uses a TV-first approach with responsive adaptations:
 - `/stores` - Zustand state management stores
 - `/services` - API, storage, and remote control services
 - `/hooks` - Custom React hooks including `useTVRemoteHandler`
+- `/utils` - Utility functions and helpers (`DeviceUtils`, `ResponsiveStyles`, `deleteHelpers`, `Logger`)
 - `/constants` - App constants and theme definitions
 - `/assets` - Static assets including TV-specific icons and banners
 
