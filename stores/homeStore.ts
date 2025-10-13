@@ -158,7 +158,7 @@ const useHomeStore = create<HomeState>((set, get) => ({
               ...record,
               id,
               source,
-              progress: record.play_time / record.total_time,
+              progress: record.total_time ? record.play_time / record.total_time : 0,
               poster: record.cover,
               sourceName: record.source_name,
               episodeIndex: record.index,

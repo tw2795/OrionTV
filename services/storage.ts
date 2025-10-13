@@ -221,12 +221,37 @@ export class PlayRecordManager {
     // Player settings are always saved locally
     await PlayerSettingsManager.save(source, id, { introEndTime, outroStartTime });
 
-    if (this.getStorageType() === "localstorage") {
-      const allRecords = await this.getAll();
+    const storageType = this.getStorageType();
+    const existingRecords = await this.getAll();
+    const duplicates = Object.entries(existingRecords).filter(
+      ([existingKey, existingRecord]) =>
+        existingKey !== key && existingRecord.title === record.title
+    );
+
+    if (storageType === "localstorage") {
+      for (const [dupKey] of duplicates) {
+        const [dupSource, dupId] = dupKey.split("+");
+        if (dupSource && dupId) {
+          await PlayerSettingsManager.remove(dupSource, dupId);
+        }
+        delete existingRecords[dupKey];
+      }
+
       const fullRecord = { ...apiRecord, save_time: Date.now() };
-      allRecords[key] = { ...allRecords[key], ...fullRecord };
-      await AsyncStorage.setItem(STORAGE_KEYS.PLAY_RECORDS, JSON.stringify(allRecords));
+      existingRecords[key] = { ...existingRecords[key], ...fullRecord };
+
+      await AsyncStorage.setItem(STORAGE_KEYS.PLAY_RECORDS, JSON.stringify(existingRecords));
     } else {
+      await Promise.all(
+        duplicates.map(async ([dupKey]) => {
+          const [dupSource, dupId] = dupKey.split("+");
+          if (dupSource && dupId) {
+            await PlayerSettingsManager.remove(dupSource, dupId);
+            await api.deletePlayRecord(dupKey);
+          }
+        })
+      );
+
       await api.savePlayRecord(key, apiRecord);
     }
   }

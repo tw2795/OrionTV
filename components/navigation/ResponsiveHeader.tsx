@@ -60,7 +60,7 @@ const ResponsiveHeader: React.FC<ResponsiveHeaderProps> = ({
           {/* 中间标题区域 */}
           <View style={dynamicStyles.centerSection}>
             {title && (
-              <ThemedText style={dynamicStyles.title} numberOfLines={1}>
+              <ThemedText style={dynamicStyles.title} numberOfLines={1} ellipsizeMode="tail">
                 {title}
               </ThemedText>
             )}
@@ -108,6 +108,7 @@ const createStyles = (spacing: number, deviceType: string, insets: any) => {
     },
     centerSection: {
       flex: 1,
+      minWidth: 0,
       justifyContent: 'center',
       alignItems: 'center',
     },

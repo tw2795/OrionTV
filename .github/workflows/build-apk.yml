@@ -23,6 +23,20 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Set Build Date (Asia/Shanghai)
+        run: |
+          export TZ=Asia/Shanghai
+          echo "TZ=$TZ" >> $GITHUB_ENV
+          BUILD_DATE=$(date +'%Y-%m-%d')
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "Build date computed: $BUILD_DATE"
+
+      - name: Inject Build Date into App
+        run: |
+          sed -i 's/const BUILD_DATE = ".*";/const BUILD_DATE = "'$BUILD_DATE'";/' components/settings/UpdateSection.tsx
+          echo "BUILD_DATE injected: $BUILD_DATE"
+          grep -n 'const BUILD_DATE' components/settings/UpdateSection.tsx
+
       - name: Get version from package.json
         id: package-version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT

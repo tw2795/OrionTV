@@ -76,17 +76,19 @@ export default function FavoritesScreen() {
     <>
       {deviceType === 'tv' && (
         <View style={dynamicStyles.headerContainer}>
-          <ThemedText style={dynamicStyles.headerTitle}>我的收藏</ThemedText>
-          <StyledButton
-            style={dynamicStyles.deleteButton}
-            onPress={() => setIsDeleteMode(!isDeleteMode)}
-            variant="ghost"
-          >
-            <Trash2
-              color={isDeleteMode ? "#FF3B30" : (colorScheme === "dark" ? "white" : "black")}
-              size={24}
-            />
-          </StyledButton>
+          <ThemedText style={dynamicStyles.headerTitle} numberOfLines={1} ellipsizeMode="tail">我的收藏</ThemedText>
+          <View style={dynamicStyles.rightHeaderButtons}>
+            <StyledButton
+              style={dynamicStyles.iconButton}
+              onPress={() => setIsDeleteMode(!isDeleteMode)}
+              variant="ghost"
+            >
+              <Trash2
+                color={isDeleteMode ? "#FF3B30" : (colorScheme === "dark" ? "white" : "black")}
+                size={24}
+              />
+            </StyledButton>
+          </View>
         </View>
       )}
       <CustomScrollView
@@ -133,16 +135,24 @@ const createResponsiveStyles = (deviceType: string, spacing: number) => {
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: spacing * 1.5,
-      marginBottom: spacing / 2,
+      marginBottom: spacing,
     },
     headerTitle: {
       flex: 1,
+      flexShrink: 1,
       fontSize: isMobile ? 24 : isTablet ? 28 : 32,
       fontWeight: "bold",
       color: "white",
+      paddingTop: 16,
+      marginRight: spacing / 2,
     },
-    deleteButton: {
+    rightHeaderButtons: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    iconButton: {
       borderRadius: 30,
+      marginLeft: spacing / 2,
     },
   });
 };
