@@ -190,18 +190,10 @@ export default function PlayScreen() {
     }
   }, [showControls, status?.isLoaded, status?.isPlaying, resetHideControlsTimer]);
 
-  // 优化的屏幕点击处理
+  // 统一的屏幕点击处理 - 所有设备行为一致：点击切换播放/暂停
   const onScreenPress = useCallback(() => {
-    if (deviceType === "tv") {
-      tvRemoteHandler.onScreenPress();
-    } else {
-      const newShowControls = !showControls;
-      setShowControls(newShowControls);
-      if (newShowControls) {
-        resetHideControlsTimer();
-      }
-    }
-  }, [deviceType, tvRemoteHandler, setShowControls, showControls, resetHideControlsTimer]);
+    usePlayerStore.getState().togglePlayPause();
+  }, []);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {

@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, GestureResponderEvent } from "react-native";
 import { Pause, Play } from "lucide-react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { MediaButton } from "@/components/MediaButton";
@@ -8,6 +8,7 @@ import usePlayerStore from "@/stores/playerStore";
 import useDetailStore from "@/stores/detailStore";
 import { useSources } from "@/stores/sourceStore";
 import { formatTime } from "@/utils/formatTime";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 
 interface PlayerControlsProps {
   showControls: boolean;
@@ -33,7 +34,25 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
     setOutroStartTime,
     introEndTime,
     outroStartTime,
+    seekToPosition,
   } = usePlayerStore();
+
+  const { deviceType } = useResponsiveLayout();
+  const [progressBarWidth, setProgressBarWidth] = useState(0);
+
+  const onProgressBarPress = useCallback(
+    (event: GestureResponderEvent) => {
+      if (deviceType === "tv") return;
+      if (!status?.isLoaded || !status.durationMillis) return;
+
+      const { locationX } = event.nativeEvent;
+      const seekPercentage = locationX / progressBarWidth;
+      const seekMillis = seekPercentage * status.durationMillis;
+
+      seekToPosition(seekMillis);
+    },
+    [deviceType, status, progressBarWidth, seekToPosition]
+  );
 
   const { detail } = useDetailStore();
   const resources = useSources();
@@ -62,7 +81,10 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
       </View>
 
       <View style={styles.bottomControlsContainer}>
-        <View style={styles.progressBarContainer}>
+        <View
+          style={styles.progressBarContainer}
+          onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
+        >
           <View style={styles.progressBarBackground} />
           <View
             style={[
@@ -72,7 +94,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
               },
             ]}
           />
-          <Pressable style={styles.progressBarTouchable} />
+          <Pressable style={styles.progressBarTouchable} onPress={onProgressBarPress} disabled={deviceType === 'tv'} />
         </View>
 
         <ThemedText style={{ color: "white", marginTop: 5 }}>
