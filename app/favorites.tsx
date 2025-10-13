@@ -13,7 +13,6 @@ import ResponsiveNavigation from "@/components/navigation/ResponsiveNavigation";
 import ResponsiveHeader from "@/components/navigation/ResponsiveHeader";
 import { StyledButton } from "@/components/StyledButton";
 import { Trash2 } from "lucide-react-native";
-import { Colors } from "@/constants/Colors";
 import { useFocusEffect } from "expo-router";
 
 export default function FavoritesScreen() {
@@ -131,22 +130,19 @@ const createResponsiveStyles = (deviceType: string, spacing: number) => {
     },
     headerContainer: {
       flexDirection: "row",
-      justifyContent: "center",
+      justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: spacing * 1.5,
       marginBottom: spacing / 2,
-      position: "relative",
     },
     headerTitle: {
+      flex: 1,
       fontSize: isMobile ? 24 : isTablet ? 28 : 32,
       fontWeight: "bold",
-      paddingTop: spacing,
-      color: 'white',
+      color: "white",
     },
     deleteButton: {
       borderRadius: 30,
-      marginLeft: spacing,
-      paddingTop: spacing,
     },
   });
 };
