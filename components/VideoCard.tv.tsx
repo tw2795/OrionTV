@@ -8,7 +8,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import Logger from '@/utils/Logger';
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
-import { DeleteType, showDeleteConfirmation } from "@/utils/deleteHelpers";
+import { DeleteType, showDeleteConfirmation, deleteRecord } from "@/utils/deleteHelpers";
+import Toast from "react-native-toast-message";
 
 const logger = Logger.withTag('VideoCardTV');
 
@@ -66,11 +67,43 @@ const VideoCard = forwardRef<View, VideoCardProps>(
       transform: [{ scale }],
     };
 
-    const handlePress = () => {
+    const handlePress = async () => {
       if (longPressTriggered.current) {
         longPressTriggered.current = false;
         return;
       }
+
+      // 如果处于删除模式，直接删除，无需确认
+      if (isDeleteMode) {
+        try {
+          await deleteRecord({
+            source,
+            id,
+            title,
+            type: deleteType,
+            onSuccess: () => {
+              Toast.show({
+                type: "success",
+                text1: deleteType === 'playRecord' ? "已删除观看记录" : "已取消收藏",
+              });
+              if (onRecordDeleted) {
+                onRecordDeleted();
+              }
+            },
+            onError: (error) => {
+              Toast.show({
+                type: "error",
+                text1: "删除失败",
+                text2: error.message,
+              });
+            },
+          });
+        } catch (error) {
+          logger.error("Delete record failed:", error);
+        }
+        return;
+      }
+
       // 如果有播放进度，直接转到播放页面
       if (progress !== undefined && episodeIndex !== undefined) {
         router.push({
@@ -212,19 +245,16 @@ const VideoCard = forwardRef<View, VideoCardProps>(
               </View>
             )}
 
-            {/* 删除模式的毛玻璃 Layer */}
+            {/* 删除模式的毛玻璃 Layer - 改为普通View，不拦截焦点 */}
             {isDeleteMode && (
-              <Pressable
-                onPress={handleDeleteClick}
-                style={styles.deleteOverlay}
-              >
+              <View style={styles.deleteOverlay} pointerEvents="none">
                 <BlurView intensity={20} style={styles.blurView}>
                   <View style={styles.deleteContent}>
                     <Trash2 size={40} color="#ffffff" />
                     <ThemedText style={styles.deleteText}>删除</ThemedText>
                   </View>
                 </BlurView>
-              </Pressable>
+              </View>
             )}
           </View>
           <View style={styles.infoContainer}>

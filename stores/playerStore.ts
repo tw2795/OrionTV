@@ -40,6 +40,7 @@ interface PlayerState {
     position?: number;
   }) => Promise<void>;
   playEpisode: (index: number) => void;
+  playPreviousEpisode: () => void;
   togglePlayPause: () => void;
   seek: (duration: number) => void;
   handlePlaybackStatusUpdate: (newStatus: AVPlaybackStatus) => void;
@@ -253,6 +254,15 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
         logger.debug("Failed to replay video:", error);
         Toast.show({ type: "error", text1: "播放失败" });
       }
+    }
+  },
+
+  playPreviousEpisode: async () => {
+    const { currentEpisodeIndex, episodes } = get();
+    if (currentEpisodeIndex > 0) {
+      get().playEpisode(currentEpisodeIndex - 1);
+    } else {
+      Toast.show({ type: "info", text1: "已经是第一集" });
     }
   },
 

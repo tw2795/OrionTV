@@ -1,12 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Pause, Play, SkipForward, List, Tv, ArrowDownToDot, ArrowUpFromDot, Gauge } from "lucide-react-native";
+import { Pause, Play } from "lucide-react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { MediaButton } from "@/components/MediaButton";
 
 import usePlayerStore from "@/stores/playerStore";
 import useDetailStore from "@/stores/detailStore";
 import { useSources } from "@/stores/sourceStore";
+import { formatTime } from "@/utils/formatTime";
 
 interface PlayerControlsProps {
   showControls: boolean;
@@ -24,6 +25,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
     playbackRate,
     togglePlayPause,
     playEpisode,
+    playPreviousEpisode,
     setShowEpisodeModal,
     setShowSourceModal,
     setShowSpeedModal,
@@ -42,14 +44,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
   const currentSource = resources.find((r) => r.source === detail?.source);
   const currentSourceName = currentSource?.source_name;
   const hasNextEpisode = currentEpisodeIndex < (episodes.length || 0) - 1;
-
-  const formatTime = (milliseconds: number) => {
-    if (!milliseconds) return "00:00";
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
+  const hasPreviousEpisode = currentEpisodeIndex > 0;
 
   const onPlayNextEpisode = () => {
     if (hasNextEpisode) {
@@ -87,36 +82,32 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
         </ThemedText>
 
         <View style={styles.bottomControls}>
-          <MediaButton onPress={setIntroEndTime} timeLabel={introEndTime ? formatTime(introEndTime) : undefined}>
-            <ArrowDownToDot color="white" size={24} />
+          <MediaButton onPress={onPlayNextEpisode} disabled={!hasNextEpisode} hasTVPreferredFocus={showControls}>
+            <Text style={[styles.buttonText, !hasNextEpisode && styles.buttonTextDisabled]}>下集</Text>
           </MediaButton>
 
-          <MediaButton onPress={togglePlayPause} hasTVPreferredFocus={showControls}>
-            {status?.isLoaded && status.isPlaying ? (
-              <Pause color="white" size={24} />
-            ) : (
-              <Play color="white" size={24} />
-            )}
-          </MediaButton>
-
-          <MediaButton onPress={onPlayNextEpisode} disabled={!hasNextEpisode}>
-            <SkipForward color={hasNextEpisode ? "white" : "#666"} size={24} />
-          </MediaButton>
-
-          <MediaButton onPress={setOutroStartTime} timeLabel={outroStartTime ? formatTime(outroStartTime) : undefined}>
-            <ArrowUpFromDot color="white" size={24} />
+          <MediaButton onPress={playPreviousEpisode} disabled={!hasPreviousEpisode}>
+            <Text style={[styles.buttonText, !hasPreviousEpisode && styles.buttonTextDisabled]}>上集</Text>
           </MediaButton>
 
           <MediaButton onPress={() => setShowEpisodeModal(true)}>
-            <List color="white" size={24} />
+            <Text style={styles.buttonText}>选集</Text>
           </MediaButton>
 
           <MediaButton onPress={() => setShowSpeedModal(true)} timeLabel={playbackRate !== 1.0 ? `${playbackRate}x` : undefined}>
-            <Gauge color="white" size={24} />
+            <Text style={styles.buttonText}>倍速</Text>
           </MediaButton>
 
           <MediaButton onPress={() => setShowSourceModal(true)}>
-            <Tv color="white" size={24} />
+            <Text style={styles.buttonText}>换源</Text>
+          </MediaButton>
+
+          <MediaButton onPress={setIntroEndTime} timeLabel={introEndTime ? formatTime(introEndTime) : undefined}>
+            <Text style={styles.buttonText}>片头</Text>
+          </MediaButton>
+
+          <MediaButton onPress={setOutroStartTime} timeLabel={outroStartTime ? formatTime(outroStartTime) : undefined}>
+            <Text style={styles.buttonText}>片尾</Text>
           </MediaButton>
         </View>
       </View>
@@ -204,5 +195,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  buttonTextDisabled: {
+    color: "#666",
   },
 });

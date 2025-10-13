@@ -5,6 +5,7 @@ import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
 import { ThemedView } from "@/components/ThemedView";
 import { PlayerControls } from "@/components/PlayerControls";
+import { CenterPlayOverlay } from "@/components/CenterPlayOverlay";
 import { EpisodeSelectionModal } from "@/components/EpisodeSelectionModal";
 import { SourceSelectionModal } from "@/components/SourceSelectionModal";
 import { SpeedSelectionModal } from "@/components/SpeedSelectionModal";
@@ -71,6 +72,7 @@ const createResponsiveStyles = (deviceType: string) => {
 
 export default function PlayScreen() {
   const videoRef = useRef<Video>(null);
+  const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   useKeepAwake();
 
@@ -104,6 +106,7 @@ export default function PlayScreen() {
     initialPosition,
     introEndTime,
     playbackRate,
+    status,
     setVideoRef,
     handlePlaybackStatusUpdate,
     setShowControls,
@@ -131,6 +134,16 @@ export default function PlayScreen() {
   // 优化的动态样式 - 使用useMemo避免重复计算
   const dynamicStyles = useMemo(() => createResponsiveStyles(deviceType), [deviceType]);
 
+  // Helper function to reset hide controls timer
+  const resetHideControlsTimer = useCallback(() => {
+    if (hideControlsTimeoutRef.current) {
+      clearTimeout(hideControlsTimeoutRef.current);
+    }
+    hideControlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000); // 3 seconds
+  }, [setShowControls]);
+
   useEffect(() => {
     const perfStart = performance.now();
     logger.info(`[PERF] PlayScreen useEffect START - source: ${source}, id: ${id}, title: ${title}`);
@@ -148,18 +161,47 @@ export default function PlayScreen() {
 
     return () => {
       logger.info(`[PERF] PlayScreen unmounting - calling reset()`);
+      if (hideControlsTimeoutRef.current) {
+        clearTimeout(hideControlsTimeoutRef.current);
+      }
       reset(); // Reset state when component unmounts
     };
   }, [episodeIndex, source, position, setVideoRef, reset, loadVideo, id, title]);
+
+  // Auto-show controls when video is paused, auto-hide after 3 seconds
+  useEffect(() => {
+    if (status?.isLoaded && !status.isPlaying) {
+      // Video is paused, show controls
+      setShowControls(true);
+      resetHideControlsTimer();
+    } else {
+      // Video is playing, clear the timer
+      if (hideControlsTimeoutRef.current) {
+        clearTimeout(hideControlsTimeoutRef.current);
+        hideControlsTimeoutRef.current = null;
+      }
+    }
+  }, [status?.isLoaded, status?.isPlaying, setShowControls, resetHideControlsTimer]);
+
+  // Reset timer when showControls changes (user interaction)
+  useEffect(() => {
+    if (showControls && status?.isLoaded && !status.isPlaying) {
+      resetHideControlsTimer();
+    }
+  }, [showControls, status?.isLoaded, status?.isPlaying, resetHideControlsTimer]);
 
   // 优化的屏幕点击处理
   const onScreenPress = useCallback(() => {
     if (deviceType === "tv") {
       tvRemoteHandler.onScreenPress();
     } else {
-      setShowControls(!showControls);
+      const newShowControls = !showControls;
+      setShowControls(newShowControls);
+      if (newShowControls) {
+        resetHideControlsTimer();
+      }
     }
-  }, [deviceType, tvRemoteHandler, setShowControls, showControls]);
+  }, [deviceType, tvRemoteHandler, setShowControls, showControls, resetHideControlsTimer]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -227,6 +269,9 @@ export default function PlayScreen() {
         ) : (
           <LoadingContainer style={dynamicStyles.loadingContainer} currentEpisode={currentEpisode} />
         )}
+
+        {/* Center play overlay - shown when paused */}
+        <CenterPlayOverlay />
 
         {showControls && deviceType === "tv" && (
           <PlayerControls showControls={showControls} setShowControls={setShowControls} />
