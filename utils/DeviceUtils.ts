@@ -6,12 +6,16 @@ export const DeviceUtils = {
    * 检测当前设备类型
    */
   getDeviceType(): DeviceType {
-    // if (Platform.isTV) return "tv";
+    // 优先使用 React Native 官方的 Platform.isTV 来判断是否为真实 TV 设备
+    if (Platform.isTV) {
+      return "tv";
+    }
 
+    // 对于非 TV 平台（如 iOS、Android 模拟器或真实手机/平板），再通过宽度区分
     const { width } = Dimensions.get("window");
-
-    if (width >= 1024) return "tv";
-    if (width >= 768) return "tablet";
+    if (width >= 768) {
+      return "tablet";
+    }
     return "mobile";
   },
 

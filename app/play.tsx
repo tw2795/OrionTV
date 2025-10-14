@@ -281,8 +281,8 @@ export default function PlayScreen() {
           <LoadingContainer style={dynamicStyles.loadingContainer} currentEpisode={currentEpisode} />
         )}
 
-        {/* Center play overlay - shown when paused */}
-        <CenterPlayOverlay />
+        {/* Center play overlay - shown when paused and controls are visible */}
+        {showControls && <CenterPlayOverlay />}
 
         {showControls && (
           <PlayerControls showControls={showControls} setShowControls={setShowControls} />
