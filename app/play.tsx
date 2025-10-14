@@ -73,6 +73,7 @@ const createResponsiveStyles = (deviceType: string) => {
 export default function PlayScreen() {
   const videoRef = useRef<Video>(null);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTap = useRef(0);
   const router = useRouter();
   useKeepAwake();
 
@@ -190,10 +191,28 @@ export default function PlayScreen() {
     }
   }, [showControls, status?.isLoaded, status?.isPlaying, resetHideControlsTimer]);
 
-  // 统一的屏幕点击处理 - 所有设备行为一致：点击切换播放/暂停
+  // 屏幕点击处理 - TV设备单击播放/暂停，非TV设备双击播放/暂停，单击切换控制条
   const onScreenPress = useCallback(() => {
-    usePlayerStore.getState().togglePlayPause();
-  }, []);
+    // 对于真实 TV 设备，保持单击播放/暂停
+    if (deviceType === "tv") {
+      usePlayerStore.getState().togglePlayPause();
+      return;
+    }
+
+    // 对于非 TV 设备（手机、平板、模拟器），实现双击播放/暂停，单击切换控制条
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300; // 300ms 内第二次点击视为双击
+
+    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+      // 双击：播放/暂停
+      usePlayerStore.getState().togglePlayPause();
+      lastTap.current = 0; // 重置，避免三击触发
+    } else {
+      // 单击：切换控制条显示/隐藏
+      setShowControls(!showControls);
+    }
+    lastTap.current = now;
+  }, [deviceType, showControls, setShowControls]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -265,7 +284,7 @@ export default function PlayScreen() {
         {/* Center play overlay - shown when paused */}
         <CenterPlayOverlay />
 
-        {showControls && deviceType === "tv" && (
+        {showControls && (
           <PlayerControls showControls={showControls} setShowControls={setShowControls} />
         )}
 
