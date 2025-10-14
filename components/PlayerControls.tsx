@@ -1,7 +1,5 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, GestureResponderEvent } from "react-native";
-import { Pause, Play } from "lucide-react-native";
-import { ThemedText } from "@/components/ThemedText";
 import { MediaButton } from "@/components/MediaButton";
 
 import usePlayerStore from "@/stores/playerStore";
@@ -39,6 +37,15 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
 
   const { deviceType } = useResponsiveLayout();
   const [progressBarWidth, setProgressBarWidth] = useState(0);
+  const [focusResetKey, setFocusResetKey] = useState(0);
+  const isTouchLayout = deviceType !== "tv";
+  const highlightButtons = isTouchLayout && showControls;
+
+  useEffect(() => {
+    if (deviceType === "tv" && showControls) {
+      setFocusResetKey((key) => key + 1);
+    }
+  }, [deviceType, showControls]);
 
   const onProgressBarPress = useCallback(
     (event: GestureResponderEvent) => {
@@ -94,41 +101,75 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
               },
             ]}
           />
-          <Pressable style={styles.progressBarTouchable} onPress={onProgressBarPress} disabled={deviceType === 'tv'} />
+          <Pressable style={styles.progressBarTouchable} onPress={onProgressBarPress} disabled={deviceType === "tv"} />
         </View>
 
-        <ThemedText style={{ color: "white", marginTop: 5 }}>
-          {status?.isLoaded
-            ? `${formatTime(status.positionMillis)} / ${formatTime(status.durationMillis || 0)}`
-            : "00:00 / 00:00"}
-        </ThemedText>
-
-        <View style={styles.bottomControls}>
-          <MediaButton onPress={onPlayNextEpisode} disabled={!hasNextEpisode} hasTVPreferredFocus={showControls}>
+        <View
+          style={[
+            styles.bottomControls,
+            isTouchLayout && styles.mobileBottomControls,
+          ]}
+        >
+          <MediaButton
+            key={`next-${focusResetKey}`}
+            onPress={onPlayNextEpisode}
+            disabled={!hasNextEpisode}
+            hasTVPreferredFocus={deviceType === "tv"}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={[styles.buttonText, !hasNextEpisode && styles.buttonTextDisabled]}>下集</Text>
           </MediaButton>
 
-          <MediaButton onPress={playPreviousEpisode} disabled={!hasPreviousEpisode}>
+          <MediaButton
+            onPress={playPreviousEpisode}
+            disabled={!hasPreviousEpisode}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={[styles.buttonText, !hasPreviousEpisode && styles.buttonTextDisabled]}>上集</Text>
           </MediaButton>
 
-          <MediaButton onPress={() => setShowEpisodeModal(true)}>
+          <MediaButton
+            onPress={() => setShowEpisodeModal(true)}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={styles.buttonText}>选集</Text>
           </MediaButton>
 
-          <MediaButton onPress={() => setShowSpeedModal(true)} timeLabel={playbackRate !== 1.0 ? `${playbackRate}x` : undefined}>
+          <MediaButton
+            onPress={() => setShowSpeedModal(true)}
+            timeLabel={playbackRate !== 1.0 ? `${playbackRate}x` : undefined}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={styles.buttonText}>倍速</Text>
           </MediaButton>
 
-          <MediaButton onPress={() => setShowSourceModal(true)}>
+          <MediaButton
+            onPress={() => setShowSourceModal(true)}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={styles.buttonText}>换源</Text>
           </MediaButton>
 
-          <MediaButton onPress={setIntroEndTime} timeLabel={introEndTime ? formatTime(introEndTime) : undefined}>
+          <MediaButton
+            onPress={setIntroEndTime}
+            timeLabel={introEndTime ? formatTime(introEndTime) : undefined}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={styles.buttonText}>片头</Text>
           </MediaButton>
 
-          <MediaButton onPress={setOutroStartTime} timeLabel={outroStartTime ? formatTime(outroStartTime) : undefined}>
+          <MediaButton
+            onPress={setOutroStartTime}
+            timeLabel={outroStartTime ? formatTime(outroStartTime) : undefined}
+            forceHighlighted={highlightButtons}
+            style={isTouchLayout ? styles.mobileControlButton : undefined}
+          >
             <Text style={styles.buttonText}>片尾</Text>
           </MediaButton>
         </View>
@@ -169,6 +210,16 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginTop: 15,
   },
+  mobileBottomControls: {
+    width: "100%",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  mobileControlButton: {
+    flexBasis: "48%",
+    minWidth: "48%",
+    marginBottom: 12,
+  },
   progressBarContainer: {
     width: "100%",
     height: 8,
@@ -180,7 +231,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     borderRadius: 4,
   },
   progressBarFilled: {

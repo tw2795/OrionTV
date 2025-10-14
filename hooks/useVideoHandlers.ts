@@ -109,7 +109,8 @@ export const useVideoHandlers = ({
     onLoad,
     onLoadStart,
     onError,
-    useNativeControls: deviceType !== 'tv',
+    // 自定义控制层覆盖所有设备，因此禁用原生控件以避免重复 UI
+    useNativeControls: false,
     shouldPlay: true,
   }), [
     currentEpisode?.url,

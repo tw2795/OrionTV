@@ -11,6 +11,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+local/
+AGENTS.md
 
 # macOS
 .DS_Store

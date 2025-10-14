@@ -16,8 +16,8 @@ export interface ResponsiveConfig {
 
 const BREAKPOINTS = {
   mobile: { min: 0, max: 767 },
-  tablet: { min: 768, max: 1023 },
-  tv: { min: 1024, max: Infinity },
+  tablet: { min: 768, max: 1279 },
+  tv: { min: 1280, max: Infinity },
 };
 
 const getDeviceType = (width: number): DeviceType => {

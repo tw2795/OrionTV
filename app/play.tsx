@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, memo, useMemo } from "react";
-import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View } from "react-native";
+import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Pressable, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
@@ -18,7 +18,8 @@ import Toast from "react-native-toast-message";
 import usePlayerStore, { selectCurrentEpisode } from "@/stores/playerStore";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useVideoHandlers } from "@/hooks/useVideoHandlers";
-import Logger from '@/utils/Logger';
+import { Maximize2 } from "lucide-react-native";
+import Logger from "@/utils/Logger";
 
 const logger = Logger.withTag('PlayScreen');
 
@@ -60,6 +61,19 @@ const createResponsiveStyles = (deviceType: string) => {
     videoPlayer: {
       ...StyleSheet.absoluteFillObject,
     },
+    fullscreenButton: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 15,
+      ...(isMobile || isTablet ? {} : { top: 24, right: 24 }),
+    },
     loadingContainer: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(0, 0, 0, 0.8)",
@@ -74,6 +88,7 @@ export default function PlayScreen() {
   const videoRef = useRef<Video>(null);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTap = useRef(0);
+  const singleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   useKeepAwake();
 
@@ -134,16 +149,31 @@ export default function PlayScreen() {
 
   // 优化的动态样式 - 使用useMemo避免重复计算
   const dynamicStyles = useMemo(() => createResponsiveStyles(deviceType), [deviceType]);
+  const handleEnterFullscreen = useCallback(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (Platform.OS === "android" || Platform.OS === "ios") {
+        await videoRef.current.presentFullscreenPlayer();
+      } else if (typeof (videoRef.current as any).presentFullscreenPlayer === "function") {
+        await (videoRef.current as any).presentFullscreenPlayer();
+      }
+    } catch (error) {
+      logger.warn(`[UI] Failed to enter fullscreen`, error);
+    }
+  }, []);
 
   // Helper function to reset hide controls timer
   const resetHideControlsTimer = useCallback(() => {
+    if (deviceType === "tv") {
+      return;
+    }
     if (hideControlsTimeoutRef.current) {
       clearTimeout(hideControlsTimeoutRef.current);
     }
     hideControlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
     }, 3000); // 3 seconds
-  }, [setShowControls]);
+  }, [deviceType, setShowControls]);
 
   useEffect(() => {
     const perfStart = performance.now();
@@ -191,6 +221,14 @@ export default function PlayScreen() {
     }
   }, [showControls, status?.isLoaded, status?.isPlaying, resetHideControlsTimer]);
 
+  useEffect(() => {
+    return () => {
+      if (singleTapTimeoutRef.current) {
+        clearTimeout(singleTapTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // 屏幕点击处理 - TV设备单击播放/暂停，非TV设备双击播放/暂停，单击切换控制条
   const onScreenPress = useCallback(() => {
     // 对于真实 TV 设备，保持单击播放/暂停
@@ -203,16 +241,27 @@ export default function PlayScreen() {
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300; // 300ms 内第二次点击视为双击
 
+    if (singleTapTimeoutRef.current) {
+      clearTimeout(singleTapTimeoutRef.current);
+      singleTapTimeoutRef.current = null;
+    }
+
     if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
       // 双击：播放/暂停
       usePlayerStore.getState().togglePlayPause();
       lastTap.current = 0; // 重置，避免三击触发
     } else {
-      // 单击：切换控制条显示/隐藏
-      setShowControls(!showControls);
+      // 单击：延迟执行，若未检测到第二次点击则切换控制条
+      lastTap.current = now;
+      singleTapTimeoutRef.current = setTimeout(() => {
+        const currentShowControls = usePlayerStore.getState().showControls;
+        usePlayerStore.getState().setShowControls(!currentShowControls);
+        singleTapTimeoutRef.current = null;
+      }, DOUBLE_PRESS_DELAY);
+      return;
     }
     lastTap.current = now;
-  }, [deviceType, showControls, setShowControls]);
+  }, [deviceType]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -279,6 +328,16 @@ export default function PlayScreen() {
           <Video ref={videoRef} style={dynamicStyles.videoPlayer} {...videoProps} />
         ) : (
           <LoadingContainer style={dynamicStyles.loadingContainer} currentEpisode={currentEpisode} />
+        )}
+
+        {deviceType !== "tv" && (
+          <Pressable
+            style={dynamicStyles.fullscreenButton}
+            onPress={handleEnterFullscreen}
+            hitSlop={8}
+          >
+            <Maximize2 color="white" size={22} />
+          </Pressable>
         )}
 
         {/* Center play overlay - shown when paused and controls are visible */}

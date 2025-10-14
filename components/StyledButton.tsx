@@ -69,8 +69,14 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
           backgroundColor: "rgba(119, 119, 119, 0.2)",
           borderColor: colors.primary,
         },
-        selectedButton: {},
-        selectedText: {},
+        selectedButton: {
+          backgroundColor: "rgba(255, 255, 255, 0.18)",
+          borderColor: colors.primary,
+        },
+        selectedText: {
+          color: colors.text,
+          fontWeight: "600",
+        },
       }),
     };
 

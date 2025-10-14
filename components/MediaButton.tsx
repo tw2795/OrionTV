@@ -2,16 +2,32 @@ import React, { ComponentProps } from "react";
 import { StyledButton } from "./StyledButton";
 import { StyleSheet, View, Text } from "react-native";
 
-type StyledButtonProps = ComponentProps<typeof StyledButton> & {
+type MediaButtonProps = ComponentProps<typeof StyledButton> & {
   timeLabel?: string;
+  forceHighlighted?: boolean;
 };
 
-export const MediaButton = ({ timeLabel, ...props }: StyledButtonProps) => (
-  <View>
-    <StyledButton {...props} style={[styles.mediaControlButton, props.style]} variant="ghost" />
-    {timeLabel && <Text style={styles.timeLabel}>{timeLabel}</Text>}
-  </View>
-);
+export const MediaButton = ({
+  timeLabel,
+  forceHighlighted = false,
+  style,
+  isSelected,
+  ...rest
+}: MediaButtonProps) => {
+  const finalSelected = forceHighlighted || isSelected;
+
+  return (
+    <View>
+      <StyledButton
+        {...rest}
+        style={[styles.mediaControlButton, style]}
+        variant="ghost"
+        isSelected={finalSelected}
+      />
+      {timeLabel && <Text style={styles.timeLabel}>{timeLabel}</Text>}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   mediaControlButton: {
