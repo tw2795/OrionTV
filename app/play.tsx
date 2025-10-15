@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useCallback, memo, useMemo } from "react";
-import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Pressable, Platform } from "react-native";
+import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Pressable, Platform, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { ThemedView } from "@/components/ThemedView";
 import { PlayerControls } from "@/components/PlayerControls";
 import { CenterPlayOverlay } from "@/components/CenterPlayOverlay";
@@ -10,6 +11,8 @@ import { EpisodeSelectionModal } from "@/components/EpisodeSelectionModal";
 import { SourceSelectionModal } from "@/components/SourceSelectionModal";
 import { SpeedSelectionModal } from "@/components/SpeedSelectionModal";
 import { SeekingBar } from "@/components/SeekingBar";
+import MobileTabletFullscreenControls from "@/components/player/MobileTabletFullscreenControls";
+import MobilePortraitPlayer from "@/components/player/MobilePortraitPlayer";
 // import { NextEpisodeOverlay } from "@/components/NextEpisodeOverlay";
 import VideoLoadingAnimation from "@/components/VideoLoadingAnimation";
 import useDetailStore from "@/stores/detailStore";
@@ -18,7 +21,7 @@ import Toast from "react-native-toast-message";
 import usePlayerStore, { selectCurrentEpisode } from "@/stores/playerStore";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useVideoHandlers } from "@/hooks/useVideoHandlers";
-import { Maximize2 } from "lucide-react-native";
+import { Maximize2, Minimize2 } from "lucide-react-native";
 import Logger from "@/utils/Logger";
 
 const logger = Logger.withTag('PlayScreen');
@@ -87,13 +90,13 @@ const createResponsiveStyles = (deviceType: string) => {
 export default function PlayScreen() {
   const videoRef = useRef<Video>(null);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTap = useRef(0);
-  const singleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   useKeepAwake();
 
   // 响应式布局配置
-  const { deviceType } = useResponsiveLayout();
+  const { deviceType, isPortrait } = useResponsiveLayout();
+  const initialDeviceTypeRef = useRef(deviceType);
+  const isBaselineMobile = initialDeviceTypeRef.current === "mobile";
 
   const {
     episodeIndex: episodeIndexStr,
@@ -118,6 +121,7 @@ export default function PlayScreen() {
   const {
     isLoading,
     showControls,
+    controlsLocked,
     // showNextEpisodeOverlay,
     initialPosition,
     introEndTime,
@@ -126,6 +130,7 @@ export default function PlayScreen() {
     setVideoRef,
     handlePlaybackStatusUpdate,
     setShowControls,
+    setControlsLocked,
     // setShowNextEpisodeOverlay,
     reset,
     loadVideo,
@@ -149,7 +154,22 @@ export default function PlayScreen() {
 
   // 优化的动态样式 - 使用useMemo避免重复计算
   const dynamicStyles = useMemo(() => createResponsiveStyles(deviceType), [deviceType]);
-  const handleEnterFullscreen = useCallback(async () => {
+  const handleToggleFullscreen = useCallback(async () => {
+    if (isBaselineMobile) {
+      if (Platform.OS !== "android" && Platform.OS !== "ios") return;
+
+      try {
+        if (isPortrait) {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        } else {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        }
+      } catch (error) {
+        logger.warn(`[UI] Failed to toggle fullscreen orientation`, error);
+      }
+      return;
+    }
+
     if (!videoRef.current) return;
     try {
       if (Platform.OS === "android" || Platform.OS === "ios") {
@@ -160,11 +180,14 @@ export default function PlayScreen() {
     } catch (error) {
       logger.warn(`[UI] Failed to enter fullscreen`, error);
     }
-  }, []);
+  }, [isBaselineMobile, isPortrait]);
 
   // Helper function to reset hide controls timer
   const resetHideControlsTimer = useCallback(() => {
     if (deviceType === "tv") {
+      return;
+    }
+    if (usePlayerStore.getState().controlsLocked) {
       return;
     }
     if (hideControlsTimeoutRef.current) {
@@ -174,6 +197,22 @@ export default function PlayScreen() {
       setShowControls(false);
     }, 3000); // 3 seconds
   }, [deviceType, setShowControls]);
+
+  const handleToggleControlsVisibility = useCallback(
+    (show: boolean) => {
+      if (show) {
+        setShowControls(true);
+        resetHideControlsTimer();
+      } else {
+        if (hideControlsTimeoutRef.current) {
+          clearTimeout(hideControlsTimeoutRef.current);
+          hideControlsTimeoutRef.current = null;
+        }
+        setShowControls(false);
+      }
+    },
+    [resetHideControlsTimer, setShowControls]
+  );
 
   useEffect(() => {
     const perfStart = performance.now();
@@ -201,7 +240,7 @@ export default function PlayScreen() {
 
   // Auto-show controls when video is paused, auto-hide after 3 seconds
   useEffect(() => {
-    if (status?.isLoaded && !status.isPlaying) {
+    if (status && status.isLoaded && !status.isPlaying) {
       // Video is paused, show controls
       setShowControls(true);
       resetHideControlsTimer();
@@ -212,56 +251,67 @@ export default function PlayScreen() {
         hideControlsTimeoutRef.current = null;
       }
     }
-  }, [status?.isLoaded, status?.isPlaying, setShowControls, resetHideControlsTimer]);
+  }, [resetHideControlsTimer, setShowControls, status]);
 
   // Reset timer when showControls changes (user interaction)
   useEffect(() => {
-    if (showControls && status?.isLoaded && !status.isPlaying) {
+    if (status && status.isLoaded && showControls && !status.isPlaying) {
       resetHideControlsTimer();
     }
-  }, [showControls, status?.isLoaded, status?.isPlaying, resetHideControlsTimer]);
+  }, [resetHideControlsTimer, showControls, status]);
 
-  useEffect(() => {
-    return () => {
-      if (singleTapTimeoutRef.current) {
-        clearTimeout(singleTapTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // 屏幕点击处理 - TV设备单击播放/暂停，非TV设备双击播放/暂停，单击切换控制条
+  // 屏幕点击处理 - TV设备单击播放/暂停，非TV设备单击切换控制条
   const onScreenPress = useCallback(() => {
     // 对于真实 TV 设备，保持单击播放/暂停
     if (deviceType === "tv") {
       usePlayerStore.getState().togglePlayPause();
       return;
     }
-
-    // 对于非 TV 设备（手机、平板、模拟器），实现双击播放/暂停，单击切换控制条
-    const now = Date.now();
-    const DOUBLE_PRESS_DELAY = 300; // 300ms 内第二次点击视为双击
-
-    if (singleTapTimeoutRef.current) {
-      clearTimeout(singleTapTimeoutRef.current);
-      singleTapTimeoutRef.current = null;
-    }
-
-    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
-      // 双击：播放/暂停
-      usePlayerStore.getState().togglePlayPause();
-      lastTap.current = 0; // 重置，避免三击触发
-    } else {
-      // 单击：延迟执行，若未检测到第二次点击则切换控制条
-      lastTap.current = now;
-      singleTapTimeoutRef.current = setTimeout(() => {
-        const currentShowControls = usePlayerStore.getState().showControls;
-        usePlayerStore.getState().setShowControls(!currentShowControls);
-        singleTapTimeoutRef.current = null;
-      }, DOUBLE_PRESS_DELAY);
+    if (controlsLocked) {
       return;
     }
-    lastTap.current = now;
-  }, [deviceType]);
+    const currentShowControls = usePlayerStore.getState().showControls;
+    handleToggleControlsVisibility(!currentShowControls);
+  }, [controlsLocked, deviceType, handleToggleControlsVisibility]);
+
+  const handleOverlayInteraction = useCallback(() => {
+    resetHideControlsTimer();
+  }, [resetHideControlsTimer]);
+
+  const handleRequestExit = useCallback(async () => {
+    if (isBaselineMobile) {
+      if (Platform.OS === "android" || Platform.OS === "ios") {
+        try {
+          setControlsLocked(false);
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+          await ScreenOrientation.unlockAsync();
+        } catch (error) {
+          logger.warn(`[UI] Failed to exit mobile fullscreen`, error);
+        }
+      }
+      StatusBar.setHidden(false, "fade");
+      handleToggleControlsVisibility(false);
+      return;
+    }
+    router.back();
+  }, [handleToggleControlsVisibility, isBaselineMobile, router, setControlsLocked]);
+
+  const handleRequestFlip = useCallback(async () => {
+    if (!isBaselineMobile) {
+      return;
+    }
+    if (Platform.OS !== "android" && Platform.OS !== "ios") {
+      return;
+    }
+    try {
+      const nextOrientation = isPortrait
+        ? ScreenOrientation.OrientationLock.LANDSCAPE
+        : ScreenOrientation.OrientationLock.PORTRAIT_UP;
+      await ScreenOrientation.lockAsync(nextOrientation);
+    } catch (error) {
+      logger.warn(`[UI] Failed to flip orientation`, error);
+    }
+  }, [isBaselineMobile, isPortrait]);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -311,18 +361,63 @@ export default function PlayScreen() {
     };
   }, [isLoading]);
 
+  useEffect(() => {
+    if (!isBaselineMobile) {
+      return;
+    }
+
+    if (Platform.OS !== "android" && Platform.OS !== "ios") {
+      return;
+    }
+
+    StatusBar.setHidden(!isPortrait, "fade");
+  }, [isBaselineMobile, isPortrait]);
+
+  useEffect(() => {
+    if (!isBaselineMobile) {
+      return;
+    }
+
+    return () => {
+      if (Platform.OS === "android" || Platform.OS === "ios") {
+        ScreenOrientation.unlockAsync().catch((error) => {
+          logger.warn(`[UI] Failed to unlock orientation on cleanup`, error);
+        });
+        StatusBar.setHidden(false, "fade");
+      }
+    };
+  }, [isBaselineMobile]);
+
   if (!detail) {
     return <VideoLoadingAnimation showProgressBar />;
   }
 
+  const fullscreenControlsDeviceType = (isBaselineMobile ? "mobile" : "tablet") as "mobile" | "tablet";
+
+  if (deviceType === "mobile" && isPortrait) {
+    return (
+      <ThemedView focusable style={dynamicStyles.container}>
+        <MobilePortraitPlayer
+          videoRef={videoRef}
+          videoProps={videoProps}
+          isVideoReady={!!currentEpisode?.url}
+          isLoading={isLoading}
+          showControls={showControls}
+          controlsLocked={controlsLocked}
+          onToggleControls={handleToggleControlsVisibility}
+          onInteract={handleOverlayInteraction}
+          onToggleFullscreen={handleToggleFullscreen}
+        />
+        <EpisodeSelectionModal />
+        <SourceSelectionModal />
+        <SpeedSelectionModal />
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView focusable style={dynamicStyles.container}>
-      <TouchableOpacity
-        activeOpacity={1}
-        style={dynamicStyles.videoContainer}
-        onPress={onScreenPress}
-        disabled={deviceType !== "tv" && showControls} // 移动端和平板端在显示控制条时禁用触摸
-      >
+      <TouchableOpacity activeOpacity={1} style={dynamicStyles.videoContainer} onPress={onScreenPress}>
         {/* 条件渲染Video组件：只有在有有效URL时才渲染 */}
         {currentEpisode?.url ? (
           <Video ref={videoRef} style={dynamicStyles.videoPlayer} {...videoProps} />
@@ -331,23 +426,35 @@ export default function PlayScreen() {
         )}
 
         {deviceType !== "tv" && (
-          <Pressable
-            style={dynamicStyles.fullscreenButton}
-            onPress={handleEnterFullscreen}
-            hitSlop={8}
-          >
-            <Maximize2 color="white" size={22} />
+          <Pressable style={dynamicStyles.fullscreenButton} onPress={handleToggleFullscreen} hitSlop={8}>
+            {isBaselineMobile && !isPortrait ? (
+              <Minimize2 color="white" size={22} />
+            ) : (
+              <Maximize2 color="white" size={22} />
+            )}
           </Pressable>
         )}
 
-        {/* Center play overlay - shown when paused and controls are visible */}
-        {showControls && <CenterPlayOverlay />}
-
-        {showControls && (
-          <PlayerControls showControls={showControls} setShowControls={setShowControls} />
+        {deviceType === "tv" ? (
+          <>
+            {showControls && <CenterPlayOverlay />}
+            {showControls && <PlayerControls showControls={showControls} setShowControls={setShowControls} />}
+            <SeekingBar />
+          </>
+        ) : (
+          <MobileTabletFullscreenControls
+            deviceType={fullscreenControlsDeviceType}
+            isPortrait={isPortrait}
+            showControls={showControls}
+            controlsLocked={controlsLocked}
+            onUnlockControls={() => setControlsLocked(false)}
+            onLockControls={() => setControlsLocked(true)}
+            onToggleControls={handleToggleControlsVisibility}
+            onInteract={handleOverlayInteraction}
+            onRequestExit={handleRequestExit}
+            onRequestFlip={isBaselineMobile ? handleRequestFlip : undefined}
+          />
         )}
-
-        <SeekingBar />
 
         {/* 只在Video组件存在且正在加载时显示加载动画覆盖层 */}
         {currentEpisode?.url && isLoading && (

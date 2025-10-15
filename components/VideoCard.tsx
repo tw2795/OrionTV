@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { API } from '@/services/api';
+import { DeleteType } from '@/utils/deleteHelpers';
 
 // 导入不同平台的VideoCard组件
 import VideoCardMobile from './VideoCard.mobile';
@@ -9,6 +10,8 @@ import VideoCardTablet from './VideoCard.tablet';
 import VideoCardTV from './VideoCard.tv';
 
 interface VideoCardProps extends React.ComponentProps<typeof TouchableOpacity> {
+  deleteType?: DeleteType;
+  isDeleteMode?: boolean;
   id: string;
   source: string;
   title: string;

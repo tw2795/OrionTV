@@ -20,6 +20,7 @@ interface PlayerState {
   status: AVPlaybackStatus | null;
   isLoading: boolean;
   showControls: boolean;
+  controlsLocked: boolean;
   showEpisodeModal: boolean;
   showSourceModal: boolean;
   showSpeedModal: boolean;
@@ -47,6 +48,7 @@ interface PlayerState {
   handlePlaybackStatusUpdate: (newStatus: AVPlaybackStatus) => void;
   setLoading: (loading: boolean) => void;
   setShowControls: (show: boolean) => void;
+  setControlsLocked: (locked: boolean) => void;
   setShowEpisodeModal: (show: boolean) => void;
   setShowSourceModal: (show: boolean) => void;
   setShowSpeedModal: (show: boolean) => void;
@@ -69,6 +71,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
   status: null,
   isLoading: true,
   showControls: false,
+  controlsLocked: false,
   showEpisodeModal: false,
   showSourceModal: false,
   showSpeedModal: false,
@@ -463,7 +466,13 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setLoading: (loading) => set({ isLoading: loading }),
-  setShowControls: (show) => set({ showControls: show }),
+  setShowControls: (show) =>
+    set((state) => (state.controlsLocked ? {} : { showControls: show })),
+  setControlsLocked: (locked) =>
+    set((state) => ({
+      controlsLocked: locked,
+      showControls: locked ? false : state.showControls,
+    })),
   setShowEpisodeModal: (show) => set({ showEpisodeModal: show }),
   setShowSourceModal: (show) => set({ showSourceModal: show }),
   setShowSpeedModal: (show) => set({ showSpeedModal: show }),
@@ -493,6 +502,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
       status: null,
       isLoading: true,
       showControls: false,
+      controlsLocked: false,
       showEpisodeModal: false,
       showSourceModal: false,
       showSpeedModal: false,

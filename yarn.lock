@@ -4564,6 +4564,11 @@ expo-av@~14.0.7:
   resolved "https://registry.yarnpkg.com/expo-av/-/expo-av-14.0.7.tgz#deb967325e58b2c4d408f5d76a7ccb269442cba1"
   integrity sha512-FvKZxyy+2/qcCmp+e1GTK3s4zH8ZO1RfjpqNxh7ARlS1oH8HPtk1AyZAMo52tHz3yQ3UIqxQ2YbI9CFb4065lA==
 
+expo-battery@~8.0.1:
+  version "8.0.1"
+  resolved "https://registry.npmmirror.com/expo-battery/-/expo-battery-8.0.1.tgz#9aa7e189e921146123da1fc6d41f1f6227eeca33"
+  integrity sha512-4lpwvKPCKzXn91UYJu/tYDgN1mLMb678P6H9M61t6Asmp8B8FpRi/AAhs2FhLatw1iM3Jz6lIREUNkrW0Cn3nQ==
+
 expo-blur@~13.0.3:
   version "13.0.3"
   resolved "https://registry.yarnpkg.com/expo-blur/-/expo-blur-13.0.3.tgz#f150f396ce8d0aac95587bc84806abf63ba2e2ba"
@@ -4654,6 +4659,11 @@ expo-router@~3.5.16:
     expo-splash-screen "0.27.7"
     react-native-helmet-async "2.0.4"
     schema-utils "^4.0.1"
+
+expo-screen-orientation@~7.0.5:
+  version "7.0.5"
+  resolved "https://registry.npmmirror.com/expo-screen-orientation/-/expo-screen-orientation-7.0.5.tgz#0a517982151c6519fa4b10ce27047de39c1f92cf"
+  integrity sha512-1j0MzVzYpjKQo4BWowQ3ZYwC3OnddX/8k06C8VYTAxMyd8ou1k+rG4tm+GIV2n2RSzc3g7cfPlQwSYr3/SGmbg==
 
 expo-splash-screen@0.27.7, expo-splash-screen@~0.27.5:
   version "0.27.7"
