@@ -13,6 +13,7 @@ npm-debug.*
 web-build/
 local/
 AGENTS.md
+.serena/
 
 # macOS
 .DS_Store

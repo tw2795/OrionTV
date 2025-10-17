@@ -39,6 +39,16 @@ export interface SearchResult {
   year: string;
   desc?: string;
   type_name?: string;
+  directors?: string[];
+  screenwriters?: string[];
+  cast?: string[];
+  first_aired?: string;
+  genres?: string[];
+  countries?: string[];
+  languages?: string[];
+  plot_summary?: string;
+  episode_length?: number;
+  rate?: string;
 }
 
 export interface Favorite {
@@ -230,9 +240,9 @@ export class API {
     return response.json();
   }
 
-  async getVideoDetail(source: string, id: string): Promise<VideoDetail> {
+  async getVideoDetail(source: string, id: string, signal?: AbortSignal): Promise<VideoDetail> {
     const url = `/api/detail?source=${source}&id=${id}`;
-    const response = await this._fetch(url);
+    const response = await this._fetch(url, { signal });
     return response.json();
   }
 }
