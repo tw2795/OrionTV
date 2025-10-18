@@ -459,8 +459,8 @@ const styles = StyleSheet.create({
   },
   contentLandscape: {
     justifyContent: "space-between",
-    paddingTop: 12,
-    paddingBottom: 18,
+    paddingTop: 6,
+    paddingBottom: 28,
   },
   contentPortrait: {
     justifyContent: "space-between",
@@ -548,7 +548,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   centerControlsLandscape: {
-    marginTop: 12,
+    marginTop: 28,
+    marginBottom: 24,
   },
   centerControlsPortrait: {
     marginTop: 24,
@@ -558,8 +559,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bottomSectionLandscape: {
-    paddingBottom: 18,
-    gap: 16,
+    paddingBottom: 32,
+    gap: 18,
   },
   bottomSectionPortrait: {
     paddingBottom: 4,
@@ -568,6 +569,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginTop: 6,
     marginBottom: 12,
   },
   timeLabel: {
@@ -620,7 +622,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingBottom: 4,
+    paddingBottom: 12,
   },
   bottomButton: {
     paddingHorizontal: 16,

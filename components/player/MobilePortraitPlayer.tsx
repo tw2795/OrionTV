@@ -268,11 +268,12 @@ const styles = StyleSheet.create({
   },
   videoSection: {
     backgroundColor: "#000",
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   videoWrapper: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   videoContainer: {
     borderRadius: 12,
