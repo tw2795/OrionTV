@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
   CornerUpLeft,
   Lock,
   Unlock,
-  Smartphone,
+  RotateCw,
   Maximize2,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
@@ -177,6 +177,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   const { detail, isFavorited, toggleFavorite } = detailStore;
 
   const [progressWidth, setProgressWidth] = useState(0);
+  const lastSeekRatioRef = useRef(0);
   const { batteryLevel, currentTime } = useSystemStatus();
 
   const playbackStatus = status && status.isLoaded ? status : null;
@@ -195,24 +196,33 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
     setProgressWidth(event.nativeEvent.layout.width);
   }, []);
 
-  const handleSeekPreview = useCallback(
-    (relativeX: number) => {
-      if (durationMillis === 0 || progressWidth === 0) return;
+  const updateSeekRatio = useCallback(
+    (relativeX: number | null) => {
+      if (relativeX == null || durationMillis === 0 || progressWidth === 0) {
+        return null;
+      }
       const ratio = clamp(relativeX / progressWidth, 0, 1);
-      usePlayerStore.setState({ isSeeking: true, seekPosition: ratio });
+      lastSeekRatioRef.current = ratio;
+      return ratio;
     },
     [durationMillis, progressWidth]
   );
 
-  const finalizeSeek = useCallback(
+  const handleSeekPreview = useCallback(
     (relativeX: number) => {
-      if (durationMillis === 0 || progressWidth === 0) return;
-      const ratio = clamp(relativeX / progressWidth, 0, 1);
-      const targetMillis = ratio * durationMillis;
-      seekToPosition(targetMillis);
+      const ratio = updateSeekRatio(relativeX);
+      if (ratio == null) return;
+      usePlayerStore.setState({ isSeeking: true, seekPosition: ratio });
     },
-    [durationMillis, progressWidth, seekToPosition]
+    [updateSeekRatio]
   );
+
+  const finalizeSeek = useCallback(() => {
+    if (durationMillis === 0) return;
+    const ratio = lastSeekRatioRef.current;
+    const targetMillis = ratio * durationMillis;
+    seekToPosition(targetMillis);
+  }, [durationMillis, seekToPosition]);
 
   const panResponder = useMemo(
     () =>
@@ -229,13 +239,15 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         },
         onPanResponderRelease: (evt: GestureResponderEvent) => {
           onInteract();
-          finalizeSeek(evt.nativeEvent.locationX);
+          updateSeekRatio(evt.nativeEvent.locationX);
+          finalizeSeek();
         },
         onPanResponderTerminate: (evt: GestureResponderEvent) => {
-          finalizeSeek(evt.nativeEvent.locationX);
+          updateSeekRatio(evt.nativeEvent.locationX);
+          finalizeSeek();
         },
       }),
-    [controlsLocked, finalizeSeek, handleSeekPreview, onInteract]
+    [controlsLocked, finalizeSeek, handleSeekPreview, onInteract, updateSeekRatio]
   );
 
   const handleTogglePlay = useCallback(() => {
@@ -312,6 +324,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   const durationLabel = formatTime(durationMillis);
 
   const topIconSize = layout === "portrait" ? 22 : 24;
+  const shouldShowBottomButtons = !(deviceType === "mobile" && layout === "portrait");
 
   if (controlsLocked) {
     return (
@@ -392,20 +405,22 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
             ) : null}
           </View>
 
-          <View style={styles.bottomButtonsRow}>
-            <Pressable style={styles.bottomButton} onPress={handleIntroToggle}>
-              <Text style={[styles.bottomButtonText, introEndTime !== undefined && styles.bottomButtonTextActive]}>片头</Text>
-            </Pressable>
-            <Pressable style={styles.bottomButton} onPress={handleOutroToggle}>
-              <Text style={[styles.bottomButtonText, outroStartTime !== undefined && styles.bottomButtonTextActive]}>片尾</Text>
-            </Pressable>
-            <Pressable style={styles.bottomButton} onPress={handleEpisodeModal}>
-              <Text style={styles.bottomButtonText}>选集</Text>
-            </Pressable>
-            <Pressable style={styles.bottomButton} onPress={handleSourceModal}>
-              <Text style={styles.bottomButtonText}>换源</Text>
-            </Pressable>
-          </View>
+          {shouldShowBottomButtons ? (
+            <View style={styles.bottomButtonsRow}>
+              <Pressable style={styles.bottomButton} onPress={handleIntroToggle}>
+                <Text style={[styles.bottomButtonText, introEndTime !== undefined && styles.bottomButtonTextActive]}>片头</Text>
+              </Pressable>
+              <Pressable style={styles.bottomButton} onPress={handleOutroToggle}>
+                <Text style={[styles.bottomButtonText, outroStartTime !== undefined && styles.bottomButtonTextActive]}>片尾</Text>
+              </Pressable>
+              <Pressable style={styles.bottomButton} onPress={handleEpisodeModal}>
+                <Text style={styles.bottomButtonText}>选集</Text>
+              </Pressable>
+              <Pressable style={styles.bottomButton} onPress={handleSourceModal}>
+                <Text style={styles.bottomButtonText}>换源</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -413,7 +428,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         <PlayerActionRail isPortrait={layout === "portrait"}>
           {onRequestExit ? <IconButton icon={CornerUpLeft} onPress={handleExit} size={26} /> : null}
           <IconButton icon={Lock} onPress={onLockControls} size={24} />
-          {deviceType === "mobile" && onRequestFlip ? <IconButton icon={Smartphone} onPress={handleFlip} size={24} /> : null}
+          {deviceType === "mobile" && onRequestFlip ? <IconButton icon={RotateCw} onPress={handleFlip} size={24} /> : null}
         </PlayerActionRail>
       ) : null}
     </View>
@@ -431,8 +446,8 @@ const styles = StyleSheet.create({
   },
   contentLandscape: {
     justifyContent: "space-between",
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 18,
   },
   contentPortrait: {
     justifyContent: "space-between",
@@ -530,8 +545,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bottomSectionLandscape: {
-    paddingBottom: 0,
-    gap: 14,
+    paddingBottom: 18,
+    gap: 16,
   },
   bottomSectionPortrait: {
     paddingBottom: 4,
@@ -540,7 +555,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   timeLabel: {
     color: "#fff",

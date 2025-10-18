@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, memo, useMemo } from "react";
-import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Pressable, Platform, StatusBar } from "react-native";
+import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Platform, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
@@ -21,7 +21,6 @@ import Toast from "react-native-toast-message";
 import usePlayerStore, { selectCurrentEpisode } from "@/stores/playerStore";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useVideoHandlers } from "@/hooks/useVideoHandlers";
-import { Maximize2, Minimize2 } from "lucide-react-native";
 import Logger from "@/utils/Logger";
 
 const logger = Logger.withTag('PlayScreen');
@@ -63,19 +62,6 @@ const createResponsiveStyles = (deviceType: string) => {
     },
     videoPlayer: {
       ...StyleSheet.absoluteFillObject,
-    },
-    fullscreenButton: {
-      position: "absolute",
-      top: 16,
-      right: 16,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: "rgba(0, 0, 0, 0.4)",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 15,
-      ...(isMobile || isTablet ? {} : { top: 24, right: 24 }),
     },
     loadingContainer: {
       ...StyleSheet.absoluteFillObject,
@@ -423,16 +409,6 @@ export default function PlayScreen() {
           <Video ref={videoRef} style={dynamicStyles.videoPlayer} {...videoProps} />
         ) : (
           <LoadingContainer style={dynamicStyles.loadingContainer} currentEpisode={currentEpisode} />
-        )}
-
-        {deviceType !== "tv" && (
-          <Pressable style={dynamicStyles.fullscreenButton} onPress={handleToggleFullscreen} hitSlop={8}>
-            {isBaselineMobile && !isPortrait ? (
-              <Minimize2 color="white" size={22} />
-            ) : (
-              <Maximize2 color="white" size={22} />
-            )}
-          </Pressable>
         )}
 
         {deviceType === "tv" ? (
