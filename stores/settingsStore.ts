@@ -19,8 +19,9 @@ interface SettingsState {
   isModalVisible: boolean;
   serverConfig: ServerConfig | null;
   isLoadingServerConfig: boolean;
+  hasUnsavedApiChanges: boolean;
   loadSettings: () => Promise<void>;
-  fetchServerConfig: () => Promise<void>;
+  fetchServerConfig: (options?: { retries?: number; delayMs?: number }) => Promise<boolean>;
   setApiBaseUrl: (url: string) => void;
   setM3uUrl: (url: string) => void;
   setRemoteInputEnabled: (enabled: boolean) => void;
@@ -38,6 +39,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isModalVisible: false,
   serverConfig: null,
   isLoadingServerConfig: false,
+  hasUnsavedApiChanges: false,
   videoSource: {
     enabledAll: true,
     sources: {},
@@ -52,28 +54,56 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         enabledAll: true,
         sources: {},
       },
+      hasUnsavedApiChanges: false,
     });
     if (settings.apiBaseUrl) {
       api.setBaseUrl(settings.apiBaseUrl);
-      await get().fetchServerConfig();
+      await get().fetchServerConfig({ retries: 3, delayMs: 1000 });
     }
   },
-  fetchServerConfig: async () => {
-    set({ isLoadingServerConfig: true });
-    try {
-      const config = await api.getServerConfig();
-      if (config) {
-        storageConfig.setStorageType(config.StorageType);
-        set({ serverConfig: config });
-      }
-    } catch (error) {
+  fetchServerConfig: async ({ retries = 1, delayMs = 1000 }: { retries?: number; delayMs?: number } = {}) => {
+    const { apiBaseUrl } = get();
+    if (!apiBaseUrl) {
       set({ serverConfig: null });
-      logger.error("Failed to fetch server config:", error);
-    } finally {
-      set({ isLoadingServerConfig: false });
+      return false;
     }
+
+    set({ isLoadingServerConfig: true });
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < Math.max(1, retries)) {
+      try {
+        const config = await api.getServerConfig();
+        if (config) {
+          storageConfig.setStorageType(config.StorageType);
+          set({ serverConfig: config });
+          success = true;
+          break;
+        }
+      } catch (error) {
+        set({ serverConfig: null });
+        logger.error(`[SettingsStore] Failed to fetch server config (attempt ${attempt + 1}):`, error);
+        if (attempt < Math.max(1, retries) - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+      attempt += 1;
+    }
+
+    set({ isLoadingServerConfig: false });
+    return success;
   },
-  setApiBaseUrl: (url) => set({ apiBaseUrl: url }),
+  setApiBaseUrl: (url) =>
+    set((state) => {
+      if (state.apiBaseUrl === url) {
+        return state;
+      }
+      return {
+        apiBaseUrl: url,
+        hasUnsavedApiChanges: true,
+      };
+    }),
   setM3uUrl: (url) => set({ m3uUrl: url }),
   setRemoteInputEnabled: (enabled) => set({ remoteInputEnabled: enabled }),
   setVideoSource: (config) => set({ videoSource: config }),
@@ -107,8 +137,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     });
     api.setBaseUrl(processedApiBaseUrl);
     // Also update the URL in the state so the input field shows the processed URL
-    set({ isModalVisible: false, apiBaseUrl: processedApiBaseUrl });
-    await get().fetchServerConfig();
+    set({ isModalVisible: false, apiBaseUrl: processedApiBaseUrl, hasUnsavedApiChanges: false });
+    await get().fetchServerConfig({ retries: 3, delayMs: 1000 });
   },
   showModal: () => set({ isModalVisible: true }),
   hideModal: () => set({ isModalVisible: false }),

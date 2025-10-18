@@ -11,7 +11,7 @@ export interface ApiConfigStatus {
 }
 
 export const useApiConfig = () => {
-  const { apiBaseUrl, serverConfig, isLoadingServerConfig } = useSettingsStore();
+  const { apiBaseUrl, serverConfig, isLoadingServerConfig, hasUnsavedApiChanges } = useSettingsStore();
   const [validationState, setValidationState] = useState<{
     isValidating: boolean;
     isValid: boolean | null;
@@ -23,14 +23,15 @@ export const useApiConfig = () => {
   });
 
   const isConfigured = Boolean(apiBaseUrl && apiBaseUrl.trim());
+  const shouldValidate = isConfigured && !hasUnsavedApiChanges;
   const needsConfiguration = !isConfigured;
 
   // Validate API configuration when it changes
   useEffect(() => {
-    if (!isConfigured) {
+    if (!shouldValidate) {
       setValidationState({
         isValidating: false,
-        isValid: false,
+        isValid: null,
         error: null,
       });
       return;
@@ -83,7 +84,7 @@ export const useApiConfig = () => {
     if (!isLoadingServerConfig) {
       validateConfig();
     }
-  }, [apiBaseUrl, isConfigured, isLoadingServerConfig]);
+  }, [apiBaseUrl, shouldValidate, isLoadingServerConfig]);
 
   // Reset validation when server config loading state changes
   useEffect(() => {
@@ -94,7 +95,7 @@ export const useApiConfig = () => {
 
   // Update validation state based on server config
   useEffect(() => {
-    if (!isLoadingServerConfig && isConfigured) {
+    if (!isLoadingServerConfig && shouldValidate) {
       if (serverConfig) {
         setValidationState(prev => ({ ...prev, isValid: true, error: null }));
       } else {
@@ -105,7 +106,7 @@ export const useApiConfig = () => {
         }));
       }
     }
-  }, [serverConfig, isLoadingServerConfig, isConfigured]);
+  }, [serverConfig, isLoadingServerConfig, shouldValidate]);
 
   const status: ApiConfigStatus = {
     isConfigured,

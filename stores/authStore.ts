@@ -27,19 +27,16 @@ const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      // Wait for server config to be loaded if it's currently loading
       const settingsState = useSettingsStore.getState();
       let serverConfig = settingsState.serverConfig;
 
-      // If server config is loading, wait a bit for it to complete
+      // 如果正在重新加载配置，等待完成
       if (settingsState.isLoadingServerConfig) {
-        // Wait up to 3 seconds for server config to load
         const maxWaitTime = 3000;
         const checkInterval = 100;
         let waitTime = 0;
-
         while (waitTime < maxWaitTime) {
-          await new Promise(resolve => setTimeout(resolve, checkInterval));
+          await new Promise((resolve) => setTimeout(resolve, checkInterval));
           waitTime += checkInterval;
           const currentState = useSettingsStore.getState();
           if (!currentState.isLoadingServerConfig) {
@@ -50,8 +47,14 @@ const useAuthStore = create<AuthState>((set) => ({
       }
 
       if (!serverConfig?.StorageType) {
-        // Only show error if we're not loading and have tried to fetch the config
-        if (!settingsState.isLoadingServerConfig) {
+        // 如果没有有效配置，尝试重试加载
+        const fetched = await useSettingsStore.getState().fetchServerConfig({ retries: 3, delayMs: 1000 });
+        serverConfig = fetched ? useSettingsStore.getState().serverConfig : null;
+      }
+
+      if (!serverConfig?.StorageType) {
+        const { hasUnsavedApiChanges } = useSettingsStore.getState();
+        if (!hasUnsavedApiChanges) {
           Toast.show({ type: "error", text1: "请检查网络或者服务器地址是否可用" });
         }
         return;

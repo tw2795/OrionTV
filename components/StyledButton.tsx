@@ -42,20 +42,27 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
       }),
       primary: StyleSheet.create({
         button: {
-          backgroundColor: "transparent",
+          backgroundColor: colors.primary,
+          borderColor: "transparent",
         },
         text: {
-          color: colors.text,
+          color: Colors.dark.text,
+          fontWeight: "600",
         },
         focusedButton: {
           backgroundColor: colors.primary,
-          borderColor: colors.background,
+          borderColor: colors.primary,
+          elevation: 6,
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.6,
+          shadowRadius: 12,
         },
         selectedButton: {
           backgroundColor: colors.primary,
         },
         selectedText: {
-          color: colors.link,
+          color: Colors.dark.text,
         },
       }),
       ghost: StyleSheet.create({
@@ -82,9 +89,9 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
 
     const styles = StyleSheet.create({
       button: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 24,
         borderWidth: 2,
         borderColor: "transparent",
         flexDirection: "row",
@@ -93,12 +100,12 @@ export const StyledButton = forwardRef<View, StyledButtonProps>(
       },
       focusedButton: {
         backgroundColor: colors.link,
-        borderColor: colors.background,
+        borderColor: colors.link,
         elevation: 5,
         shadowColor: colors.link,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 15,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
       },
       selectedButton: {
         backgroundColor: colors.tint,

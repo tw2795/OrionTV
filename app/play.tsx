@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, memo, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, memo, useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Platform, StatusBar } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Video } from "expo-av";
@@ -83,6 +83,7 @@ export default function PlayScreen() {
   const { deviceType, isPortrait } = useResponsiveLayout();
   const initialDeviceTypeRef = useRef(deviceType);
   const isBaselineMobile = initialDeviceTypeRef.current === "mobile";
+  const [mobileFullscreenMode, setMobileFullscreenMode] = useState(() => isBaselineMobile && !isPortrait);
 
   const {
     episodeIndex: episodeIndexStr,
@@ -146,8 +147,10 @@ export default function PlayScreen() {
 
       try {
         if (isPortrait) {
+          setMobileFullscreenMode(true);
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         } else {
+          setMobileFullscreenMode(false);
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
         }
       } catch (error) {
@@ -246,6 +249,13 @@ export default function PlayScreen() {
     }
   }, [resetHideControlsTimer, showControls, status]);
 
+  useEffect(() => {
+    if (!isBaselineMobile) return;
+    if (!isPortrait) {
+      setMobileFullscreenMode(true);
+    }
+  }, [isBaselineMobile, isPortrait]);
+
   // 屏幕点击处理 - TV设备单击播放/暂停，非TV设备单击切换控制条
   const onScreenPress = useCallback(() => {
     // 对于真实 TV 设备，保持单击播放/暂停
@@ -277,6 +287,7 @@ export default function PlayScreen() {
       }
       StatusBar.setHidden(false, "fade");
       handleToggleControlsVisibility(false);
+      setMobileFullscreenMode(false);
       return;
     }
     router.back();
@@ -294,6 +305,7 @@ export default function PlayScreen() {
         ? ScreenOrientation.OrientationLock.LANDSCAPE
         : ScreenOrientation.OrientationLock.PORTRAIT_UP;
       await ScreenOrientation.lockAsync(nextOrientation);
+      setMobileFullscreenMode(true);
     } catch (error) {
       logger.warn(`[UI] Failed to flip orientation`, error);
     }
@@ -356,8 +368,8 @@ export default function PlayScreen() {
       return;
     }
 
-    StatusBar.setHidden(!isPortrait, "fade");
-  }, [isBaselineMobile, isPortrait]);
+    StatusBar.setHidden(mobileFullscreenMode || !isPortrait, "fade");
+  }, [isBaselineMobile, isPortrait, mobileFullscreenMode]);
 
   useEffect(() => {
     if (!isBaselineMobile) {
@@ -380,7 +392,7 @@ export default function PlayScreen() {
 
   const fullscreenControlsDeviceType = (isBaselineMobile ? "mobile" : "tablet") as "mobile" | "tablet";
 
-  if (deviceType === "mobile" && isPortrait) {
+  if (deviceType === "mobile" && isPortrait && !mobileFullscreenMode) {
     return (
       <ThemedView focusable style={dynamicStyles.container}>
         <MobilePortraitPlayer

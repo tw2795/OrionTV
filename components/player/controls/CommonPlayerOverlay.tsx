@@ -325,6 +325,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
 
   const topIconSize = layout === "portrait" ? 22 : 24;
   const shouldShowBottomButtons = !(deviceType === "mobile" && layout === "portrait");
+  const isMobileLandscape = deviceType === "mobile" && layout === "landscape";
 
   if (controlsLocked) {
     return (
@@ -342,7 +343,14 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
-      <View style={[styles.content, layout === "portrait" ? styles.contentPortrait : styles.contentLandscape]} pointerEvents="auto">
+      <View
+        style={[
+          styles.content,
+          layout === "portrait" ? styles.contentPortrait : styles.contentLandscape,
+          isMobileLandscape && styles.mobileLandscapeContent,
+        ]}
+        pointerEvents="auto"
+      >
         <View style={styles.topRow}>
           <View style={styles.titleContainer}>
             <Text style={[styles.videoTitle, layout === "portrait" && styles.videoTitlePortrait]} numberOfLines={1}>
@@ -368,6 +376,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
           style={[
             styles.centerControlsWrapper,
             layout === "portrait" ? styles.centerControlsPortrait : styles.centerControlsLandscape,
+            isMobileLandscape && styles.mobileLandscapeCenterControls,
           ]}
         >
           <IconButton icon={SkipBack} onPress={handlePlayPrevious} disabled={!hasPreviousEpisode} size={layout === "portrait" ? 40 : 44} />
@@ -379,9 +388,15 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
           style={[
             styles.bottomSection,
             layout === "portrait" ? styles.bottomSectionPortrait : styles.bottomSectionLandscape,
+            isMobileLandscape && styles.mobileLandscapeBottomSection,
           ]}
         >
-          <View style={styles.progressSection}>
+          <View
+            style={[
+              styles.progressSection,
+              isMobileLandscape && styles.mobileLandscapeProgress,
+            ]}
+          >
             <Text style={[styles.timeLabel, layout === "portrait" && styles.timeLabelPortrait]}>{currentTimeLabel}</Text>
               <Pressable
                 style={styles.progressBarContainer}
@@ -419,7 +434,12 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
           </View>
 
           {shouldShowBottomButtons ? (
-            <View style={styles.bottomButtonsRow}>
+            <View
+              style={[
+                styles.bottomButtonsRow,
+                isMobileLandscape && styles.mobileLandscapeBottomButtons,
+              ]}
+            >
               <Pressable style={styles.bottomButton} onPress={handleIntroToggle}>
                 <Text style={[styles.bottomButtonText, introEndTime !== undefined && styles.bottomButtonTextActive]}>片头</Text>
               </Pressable>
@@ -459,8 +479,8 @@ const styles = StyleSheet.create({
   },
   contentLandscape: {
     justifyContent: "space-between",
-    paddingTop: 12,
-    paddingBottom: 18,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   contentPortrait: {
     justifyContent: "space-between",
@@ -558,8 +578,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bottomSectionLandscape: {
-    paddingBottom: 18,
-    gap: 16,
+    paddingBottom: 0,
+    gap: 14,
   },
   bottomSectionPortrait: {
     paddingBottom: 4,
@@ -568,7 +588,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   timeLabel: {
     color: "#fff",
@@ -620,6 +640,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     alignItems: "center",
     paddingHorizontal: 12,
+    paddingBottom: 4,
+  },
+  mobileLandscapeContent: {
+    paddingTop: 6,
+    paddingBottom: 16,
+  },
+  mobileLandscapeCenterControls: {
+    marginTop: 40,
+    marginBottom: 16,
+  },
+  mobileLandscapeBottomSection: {
+    marginTop: 8,
+    paddingBottom: 10,
+    gap: 14,
+  },
+  mobileLandscapeProgress: {
+    marginTop: 0,
+    marginBottom: 10,
+  },
+  mobileLandscapeBottomButtons: {
     paddingBottom: 4,
   },
   bottomButton: {

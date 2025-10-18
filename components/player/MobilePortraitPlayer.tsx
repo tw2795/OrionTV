@@ -268,11 +268,12 @@ const styles = StyleSheet.create({
   },
   videoSection: {
     backgroundColor: "#000",
-    paddingBottom: 16,
+    paddingTop: 36,
+    paddingBottom: 6,
   },
   videoWrapper: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 0,
   },
   videoContainer: {
     borderRadius: 12,
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   tagRow: {
     flexDirection: "row",
