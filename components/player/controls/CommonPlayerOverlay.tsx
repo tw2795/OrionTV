@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -177,7 +177,6 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   const { detail, isFavorited, toggleFavorite } = detailStore;
 
   const [progressWidth, setProgressWidth] = useState(0);
-  const lastSeekRatioRef = useRef(0);
   const { batteryLevel, currentTime } = useSystemStatus();
 
   const playbackStatus = status && status.isLoaded ? status : null;
@@ -196,33 +195,24 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
     setProgressWidth(event.nativeEvent.layout.width);
   }, []);
 
-  const updateSeekRatio = useCallback(
-    (relativeX: number | null) => {
-      if (relativeX == null || durationMillis === 0 || progressWidth === 0) {
-        return null;
-      }
+  const handleSeekPreview = useCallback(
+    (relativeX: number) => {
+      if (durationMillis === 0 || progressWidth === 0) return;
       const ratio = clamp(relativeX / progressWidth, 0, 1);
-      lastSeekRatioRef.current = ratio;
-      return ratio;
+      usePlayerStore.setState({ isSeeking: true, seekPosition: ratio });
     },
     [durationMillis, progressWidth]
   );
 
-  const handleSeekPreview = useCallback(
+  const finalizeSeek = useCallback(
     (relativeX: number) => {
-      const ratio = updateSeekRatio(relativeX);
-      if (ratio == null) return;
-      usePlayerStore.setState({ isSeeking: true, seekPosition: ratio });
+      if (durationMillis === 0 || progressWidth === 0) return;
+      const ratio = clamp(relativeX / progressWidth, 0, 1);
+      const targetMillis = ratio * durationMillis;
+      seekToPosition(targetMillis);
     },
-    [updateSeekRatio]
+    [durationMillis, progressWidth, seekToPosition]
   );
-
-  const finalizeSeek = useCallback(() => {
-    if (durationMillis === 0) return;
-    const ratio = lastSeekRatioRef.current;
-    const targetMillis = ratio * durationMillis;
-    seekToPosition(targetMillis);
-  }, [durationMillis, seekToPosition]);
 
   const panResponder = useMemo(
     () =>
@@ -230,24 +220,34 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         onStartShouldSetPanResponder: () => !controlsLocked,
         onMoveShouldSetPanResponder: () => !controlsLocked,
         onPanResponderGrant: (evt: GestureResponderEvent) => {
+          if (typeof evt.stopPropagation === "function") {
+            evt.stopPropagation();
+          }
           onInteract();
           handleSeekPreview(evt.nativeEvent.locationX);
         },
         onPanResponderMove: (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
+          if (typeof evt.stopPropagation === "function") {
+            evt.stopPropagation();
+          }
           onInteract();
           handleSeekPreview(evt.nativeEvent.locationX);
         },
         onPanResponderRelease: (evt: GestureResponderEvent) => {
+          if (typeof evt.stopPropagation === "function") {
+            evt.stopPropagation();
+          }
           onInteract();
-          updateSeekRatio(evt.nativeEvent.locationX);
-          finalizeSeek();
+          finalizeSeek(evt.nativeEvent.locationX);
         },
         onPanResponderTerminate: (evt: GestureResponderEvent) => {
-          updateSeekRatio(evt.nativeEvent.locationX);
-          finalizeSeek();
+          if (typeof evt.stopPropagation === "function") {
+            evt.stopPropagation();
+          }
+          finalizeSeek(evt.nativeEvent.locationX);
         },
       }),
-    [controlsLocked, finalizeSeek, handleSeekPreview, onInteract, updateSeekRatio]
+    [controlsLocked, finalizeSeek, handleSeekPreview, onInteract]
   );
 
   const handleTogglePlay = useCallback(() => {
@@ -383,19 +383,32 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         >
           <View style={styles.progressSection}>
             <Text style={[styles.timeLabel, layout === "portrait" && styles.timeLabelPortrait]}>{currentTimeLabel}</Text>
-            <View style={styles.progressBarContainer} onLayout={handleProgressLayout} {...panResponder.panHandlers}>
-              <View style={styles.progressBackground} />
-              <View style={[styles.progressBuffered, { width: `${bufferedProgress * 100}%` }]} />
-              <View style={[styles.progressFill, { width: `${currentProgress * 100}%` }]} />
-              <View
-                style={[
+              <Pressable
+                style={styles.progressBarContainer}
+                onLayout={handleProgressLayout}
+                onPress={(event) => {
+                  if (typeof event.stopPropagation === "function") {
+                    event.stopPropagation();
+                  }
+                  onInteract();
+                  const locationX = event.nativeEvent.locationX;
+                  handleSeekPreview(locationX);
+                  finalizeSeek(locationX);
+                }}
+                {...panResponder.panHandlers}
+              >
+                <View style={styles.progressBackground} />
+                <View style={[styles.progressBuffered, { width: `${bufferedProgress * 100}%` }]} />
+                <View style={[styles.progressFill, { width: `${currentProgress * 100}%` }]} />
+                <View
+                  style={[
                   styles.progressKnob,
                   {
                     left: Math.max(-DEFAULT_KNOB_SIZE / 2, progressWidth * currentProgress - DEFAULT_KNOB_SIZE / 2),
                   },
                 ]}
               />
-            </View>
+              </Pressable>
             <Text style={[styles.timeLabel, layout === "portrait" && styles.timeLabelPortrait]}>{durationLabel}</Text>
             {layout === "portrait" && onToggleFullscreen ? (
               <IconButton icon={Maximize2} onPress={() => {
