@@ -5,12 +5,10 @@ import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { ThemedView } from "@/components/ThemedView";
-import { PlayerControls } from "@/components/PlayerControls";
-import { CenterPlayOverlay } from "@/components/CenterPlayOverlay";
+import TvOverlay from "@/components/player/overlays/TvOverlay";
 import { EpisodeSelectionModal } from "@/components/EpisodeSelectionModal";
 import { SourceSelectionModal } from "@/components/SourceSelectionModal";
 import { SpeedSelectionModal } from "@/components/SpeedSelectionModal";
-import { SeekingBar } from "@/components/SeekingBar";
 import MobileTabletFullscreenControls from "@/components/player/MobileTabletFullscreenControls";
 import MobilePortraitPlayer from "@/components/player/MobilePortraitPlayer";
 // import { NextEpisodeOverlay } from "@/components/NextEpisodeOverlay";
@@ -391,6 +389,7 @@ export default function PlayScreen() {
   }
 
   const fullscreenControlsDeviceType = (isBaselineMobile ? "mobile" : "tablet") as "mobile" | "tablet";
+  const overlayIsFullscreen = fullscreenControlsDeviceType !== "mobile" ? true : (!isPortrait || mobileFullscreenMode);
 
   if (deviceType === "mobile" && isPortrait && !mobileFullscreenMode) {
     return (
@@ -424,11 +423,7 @@ export default function PlayScreen() {
         )}
 
         {deviceType === "tv" ? (
-          <>
-            {showControls && <CenterPlayOverlay />}
-            {showControls && <PlayerControls showControls={showControls} setShowControls={setShowControls} />}
-            <SeekingBar />
-          </>
+          <TvOverlay showControls={showControls} setShowControls={setShowControls} />
         ) : (
           <MobileTabletFullscreenControls
             deviceType={fullscreenControlsDeviceType}
@@ -441,6 +436,7 @@ export default function PlayScreen() {
             onInteract={handleOverlayInteraction}
             onRequestExit={handleRequestExit}
             onRequestFlip={isBaselineMobile ? handleRequestFlip : undefined}
+            isFullscreen={overlayIsFullscreen}
           />
         )}
 

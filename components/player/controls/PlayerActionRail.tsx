@@ -1,27 +1,20 @@
-import React, { useState } from "react";
-import { View, StyleSheet, useWindowDimensions } from "react-native";
+import React from "react";
+import { View, StyleSheet } from "react-native";
 
 interface PlayerActionRailProps {
   isPortrait?: boolean;
+  alignCenter?: boolean;
   children: React.ReactNode;
 }
 
-const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, children }) => {
-  const { height } = useWindowDimensions();
-  const [railHeight, setRailHeight] = useState(0);
-
-  const topOffset = isPortrait ? 24 : Math.max(24, (height - railHeight) / 2);
+const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, alignCenter, children }) => {
+  const containerStyles = [
+    styles.container,
+    alignCenter ? styles.centered : isPortrait ? styles.portrait : styles.landscape,
+  ];
 
   return (
-    <View
-      style={[styles.container, { top: topOffset }, isPortrait ? styles.containerPortrait : styles.containerLandscape]}
-      onLayout={({ nativeEvent }) => {
-        const nextHeight = nativeEvent.layout.height;
-        if (nextHeight !== railHeight) {
-          setRailHeight(nextHeight);
-        }
-      }}
-    >
+    <View style={containerStyles}>
       {React.Children.map(children, (child, index) => (
         <View key={index} style={styles.buttonSlot}>
           {child}
@@ -42,8 +35,19 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: "center",
   },
-  containerLandscape: {},
-  containerPortrait: {},
+  portrait: {
+    top: 24,
+  },
+  landscape: {
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
+  centered: {
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
   buttonSlot: {
     alignItems: "center",
     justifyContent: "center",
