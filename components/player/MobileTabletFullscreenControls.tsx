@@ -12,6 +12,7 @@ interface MobileTabletFullscreenControlsProps {
   onInteract: () => void;
   onRequestExit: () => void;
   onRequestFlip?: () => void;
+  isFullscreen?: boolean;
 }
 
 const MobileTabletFullscreenControls: React.FC<MobileTabletFullscreenControlsProps> = ({
@@ -25,10 +26,12 @@ const MobileTabletFullscreenControls: React.FC<MobileTabletFullscreenControlsPro
   onInteract,
   onRequestExit,
   onRequestFlip,
+  isFullscreen = true,
 }) => {
   const layout = isPortrait ? "portrait" : "landscape";
 
   const flipHandler = deviceType === "mobile" ? onRequestFlip : undefined;
+  const sideActionsVisible = layout === "landscape" || (isFullscreen && deviceType === "mobile" && layout === "portrait");
 
   return (
     <CommonPlayerOverlay
@@ -42,7 +45,8 @@ const MobileTabletFullscreenControls: React.FC<MobileTabletFullscreenControlsPro
       onInteract={onInteract}
       onRequestExit={onRequestExit}
       onRequestFlip={flipHandler}
-      showSideActions={layout === "landscape"}
+      showSideActions={sideActionsVisible}
+      isFullscreen={isFullscreen}
     />
   );
 };

@@ -391,6 +391,7 @@ export default function PlayScreen() {
   }
 
   const fullscreenControlsDeviceType = (isBaselineMobile ? "mobile" : "tablet") as "mobile" | "tablet";
+  const overlayIsFullscreen = fullscreenControlsDeviceType !== "mobile" ? true : (!isPortrait || mobileFullscreenMode);
 
   if (deviceType === "mobile" && isPortrait && !mobileFullscreenMode) {
     return (
@@ -441,6 +442,7 @@ export default function PlayScreen() {
             onInteract={handleOverlayInteraction}
             onRequestExit={handleRequestExit}
             onRequestFlip={isBaselineMobile ? handleRequestFlip : undefined}
+            isFullscreen={overlayIsFullscreen}
           />
         )}
 

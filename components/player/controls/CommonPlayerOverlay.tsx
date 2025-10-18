@@ -45,6 +45,7 @@ export interface CommonPlayerOverlayProps {
   onRequestFlip?: () => void;
   showSideActions?: boolean;
   onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
 interface IconButtonProps {
@@ -153,6 +154,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   onRequestFlip,
   showSideActions = false,
   onToggleFullscreen,
+  isFullscreen = false,
 }) => {
   const {
     togglePlayPause,
@@ -190,6 +192,10 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   const hasPreviousEpisode = currentEpisodeIndex > 0;
   const hasNextEpisode = currentEpisodeIndex < episodes.length - 1;
   const isPlaying = playbackStatus?.isPlaying ?? false;
+  const isMobile = deviceType === "mobile";
+  const isTablet = deviceType === "tablet";
+  const isPortraitLayout = layout === "portrait";
+  const isLandscapeLayout = !isPortraitLayout;
 
   const handleProgressLayout = useCallback((event: LayoutChangeEvent) => {
     setProgressWidth(event.nativeEvent.layout.width);
@@ -324,8 +330,102 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
   const durationLabel = formatTime(durationMillis);
 
   const topIconSize = layout === "portrait" ? 22 : 24;
-  const shouldShowBottomButtons = !(deviceType === "mobile" && layout === "portrait");
-  const isMobileLandscape = deviceType === "mobile" && layout === "landscape";
+  const shouldShowBottomButtons = isLandscapeLayout
+    ? true
+    : isMobile
+      ? isFullscreen
+      : true;
+
+  const contentStyle = useMemo(() => {
+    const stylesArray = [
+      styles.content,
+      isPortraitLayout ? styles.contentPortrait : styles.contentLandscape,
+    ];
+
+    if (isMobile) {
+      if (isPortraitLayout) {
+        stylesArray.push(isFullscreen ? styles.mobilePortraitFullscreenContent : styles.mobilePortraitContent);
+      } else {
+        stylesArray.push(styles.mobileLandscapeContent);
+      }
+    } else if (isTablet && isLandscapeLayout) {
+      stylesArray.push(styles.tabletLandscapeContent);
+    }
+
+    return stylesArray;
+  }, [isFullscreen, isLandscapeLayout, isMobile, isPortraitLayout, isTablet]);
+
+  const centerControlsStyle = useMemo(() => {
+    const stylesArray = [
+      styles.centerControlsWrapper,
+      isPortraitLayout ? styles.centerControlsPortrait : styles.centerControlsLandscape,
+    ];
+
+    if (isMobile) {
+      if (isPortraitLayout) {
+        stylesArray.push(isFullscreen ? styles.mobilePortraitFullscreenCenter : styles.mobilePortraitCenter);
+      } else {
+        stylesArray.push(styles.mobileLandscapeCenterControls);
+      }
+    } else if (isTablet && isLandscapeLayout) {
+      stylesArray.push(styles.tabletLandscapeCenterControls);
+    }
+
+    return stylesArray;
+  }, [isFullscreen, isLandscapeLayout, isMobile, isPortraitLayout, isTablet]);
+
+  const bottomSectionStyle = useMemo(() => {
+    const stylesArray = [
+      styles.bottomSection,
+      isPortraitLayout ? styles.bottomSectionPortrait : styles.bottomSectionLandscape,
+    ];
+
+    if (isMobile) {
+      if (isPortraitLayout) {
+        stylesArray.push(isFullscreen ? styles.mobilePortraitFullscreenBottomSection : styles.mobilePortraitBottomSection);
+      } else {
+        stylesArray.push(styles.mobileLandscapeBottomSection);
+      }
+    } else if (isTablet && isLandscapeLayout) {
+      stylesArray.push(styles.tabletLandscapeBottomSection);
+    }
+
+    return stylesArray;
+  }, [isFullscreen, isLandscapeLayout, isMobile, isPortraitLayout, isTablet]);
+
+  const progressSectionStyle = useMemo(() => {
+    const stylesArray = [styles.progressSection];
+
+    if (isMobile) {
+      if (isPortraitLayout) {
+        stylesArray.push(isFullscreen ? styles.mobilePortraitFullscreenProgress : styles.mobilePortraitProgress);
+      } else {
+        stylesArray.push(styles.mobileLandscapeProgress);
+      }
+    } else if (isTablet && isLandscapeLayout) {
+      stylesArray.push(styles.tabletLandscapeProgress);
+    }
+
+    return stylesArray;
+  }, [isFullscreen, isLandscapeLayout, isMobile, isPortraitLayout, isTablet]);
+
+  const bottomButtonsRowStyle = useMemo(() => {
+    const stylesArray = [styles.bottomButtonsRow];
+
+    if (isMobile) {
+      if (isPortraitLayout) {
+        if (isFullscreen) {
+          stylesArray.push(styles.mobilePortraitBottomButtons);
+        }
+      } else {
+        stylesArray.push(styles.mobileLandscapeBottomButtons);
+      }
+    } else if (isTablet && isLandscapeLayout) {
+      stylesArray.push(styles.tabletLandscapeBottomButtons);
+    }
+
+    return stylesArray;
+  }, [isFullscreen, isLandscapeLayout, isMobile, isPortraitLayout, isTablet]);
 
   if (controlsLocked) {
     return (
@@ -341,17 +441,18 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
     return null;
   }
 
+  const topRowStyle = useMemo(() => {
+    const stylesArray = [styles.topRow];
+    if (isMobile && isPortraitLayout) {
+      stylesArray.push(isFullscreen ? styles.mobilePortraitFullscreenTopRow : styles.mobilePortraitTopRow);
+    }
+    return stylesArray;
+  }, [isFullscreen, isMobile, isPortraitLayout]);
+
   return (
     <View style={styles.overlay} pointerEvents="box-none">
-      <View
-        style={[
-          styles.content,
-          layout === "portrait" ? styles.contentPortrait : styles.contentLandscape,
-          isMobileLandscape && styles.mobileLandscapeContent,
-        ]}
-        pointerEvents="auto"
-      >
-        <View style={styles.topRow}>
+      <View style={contentStyle} pointerEvents="auto">
+        <View style={topRowStyle}>
           <View style={styles.titleContainer}>
             <Text style={[styles.videoTitle, layout === "portrait" && styles.videoTitlePortrait]} numberOfLines={1}>
               {title && episodeLabel ? `${title}：${episodeLabel}` : title || episodeLabel}
@@ -373,11 +474,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         </View>
 
         <View
-          style={[
-            styles.centerControlsWrapper,
-            layout === "portrait" ? styles.centerControlsPortrait : styles.centerControlsLandscape,
-            isMobileLandscape && styles.mobileLandscapeCenterControls,
-          ]}
+          style={centerControlsStyle}
         >
           <IconButton icon={SkipBack} onPress={handlePlayPrevious} disabled={!hasPreviousEpisode} size={layout === "portrait" ? 40 : 44} />
           <IconButton icon={isPlaying ? Pause : Play} onPress={handleTogglePlay} size={layout === "portrait" ? 56 : 60} />
@@ -385,18 +482,9 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
         </View>
 
         <View
-          style={[
-            styles.bottomSection,
-            layout === "portrait" ? styles.bottomSectionPortrait : styles.bottomSectionLandscape,
-            isMobileLandscape && styles.mobileLandscapeBottomSection,
-          ]}
+          style={bottomSectionStyle}
         >
-          <View
-            style={[
-              styles.progressSection,
-              isMobileLandscape && styles.mobileLandscapeProgress,
-            ]}
-          >
+          <View style={progressSectionStyle}>
             <Text style={[styles.timeLabel, layout === "portrait" && styles.timeLabelPortrait]}>{currentTimeLabel}</Text>
               <Pressable
                 style={styles.progressBarContainer}
@@ -435,10 +523,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
 
           {shouldShowBottomButtons ? (
             <View
-              style={[
-                styles.bottomButtonsRow,
-                isMobileLandscape && styles.mobileLandscapeBottomButtons,
-              ]}
+              style={bottomButtonsRowStyle}
             >
               <Pressable style={styles.bottomButton} onPress={handleIntroToggle}>
                 <Text style={[styles.bottomButtonText, introEndTime !== undefined && styles.bottomButtonTextActive]}>片头</Text>
@@ -458,7 +543,7 @@ export const CommonPlayerOverlay: React.FC<CommonPlayerOverlayProps> = ({
       </View>
 
       {showSideActions ? (
-        <PlayerActionRail isPortrait={layout === "portrait"}>
+        <PlayerActionRail isPortrait={layout === "portrait"} alignCenter={isFullscreen && isPortraitLayout}>
           {onRequestExit ? <IconButton icon={CornerUpLeft} onPress={handleExit} size={26} /> : null}
           <IconButton icon={Lock} onPress={onLockControls} size={24} />
           {deviceType === "mobile" && onRequestFlip ? <IconButton icon={RotateCw} onPress={handleFlip} size={24} /> : null}
@@ -490,6 +575,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  mobilePortraitTopRow: {
+    marginTop: -10,
+  },
+  mobilePortraitFullscreenTopRow: {
+    marginTop: -6,
   },
   titleContainer: {
     flex: 1,
@@ -642,25 +733,72 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 4,
   },
+  mobilePortraitContent: {
+    paddingTop: 0,
+    paddingBottom: 12,
+  },
+  mobilePortraitFullscreenContent: {
+    paddingTop: 4,
+    paddingBottom: 18,
+  },
   mobileLandscapeContent: {
-    paddingTop: 6,
+    paddingTop: 10,
     paddingBottom: 16,
   },
+  tabletLandscapeContent: {
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  mobilePortraitCenter: {
+    marginTop: 20,
+  },
+  mobilePortraitFullscreenCenter: {
+    marginTop: 26,
+  },
   mobileLandscapeCenterControls: {
-    marginTop: 40,
-    marginBottom: 16,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  tabletLandscapeCenterControls: {
+    marginTop: 12,
+  },
+  mobilePortraitBottomSection: {
+    marginTop: 12,
+  },
+  mobilePortraitFullscreenBottomSection: {
+    marginTop: 16,
+    paddingBottom: 18,
+    gap: 18,
   },
   mobileLandscapeBottomSection: {
     marginTop: 8,
-    paddingBottom: 10,
-    gap: 14,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  tabletLandscapeBottomSection: {
+    paddingBottom: 24,
+    gap: 16,
+  },
+  mobilePortraitProgress: {
+    marginBottom: 12,
+  },
+  mobilePortraitFullscreenProgress: {
+    marginBottom: 18,
   },
   mobileLandscapeProgress: {
-    marginTop: 0,
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  tabletLandscapeProgress: {
+    marginBottom: 12,
+  },
+  mobilePortraitBottomButtons: {
+    paddingBottom: 18,
   },
   mobileLandscapeBottomButtons: {
-    paddingBottom: 4,
+    paddingBottom: 8,
+  },
+  tabletLandscapeBottomButtons: {
+    paddingBottom: 8,
   },
   bottomButton: {
     paddingHorizontal: 16,

@@ -3,14 +3,15 @@ import { View, StyleSheet, useWindowDimensions } from "react-native";
 
 interface PlayerActionRailProps {
   isPortrait?: boolean;
+  alignCenter?: boolean;
   children: React.ReactNode;
 }
 
-const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, children }) => {
+const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, alignCenter, children }) => {
   const { height } = useWindowDimensions();
   const [railHeight, setRailHeight] = useState(0);
 
-  const topOffset = isPortrait ? 24 : Math.max(24, (height - railHeight) / 2);
+  const topOffset = alignCenter || !isPortrait ? Math.max(24, (height - railHeight) / 2) : 24;
 
   return (
     <View
