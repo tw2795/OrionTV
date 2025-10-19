@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react-native";
+import OverlayLayout from "@/components/player/overlays/OverlayLayout";
 import { baseOverlayStyles } from "@/components/player/overlays/shared/baseStyles";
 import TopBar from "@/components/player/overlays/shared/TopBar";
 import ProgressSection from "@/components/player/overlays/shared/ProgressSection";
@@ -11,7 +12,7 @@ import type { OverlayComponentProps } from "@/components/player/overlays/types";
 
 /**
  * 场景：手机竖屏（非全屏）观看。
- * 特点：顶部空间紧凑、隐藏底部快捷按钮、不展示侧边操作栏。
+ * 采用 OverlayLayout 基于视频容器的坐标结果定位各功能区。
  */
 const MobilePortraitOverlay: React.FC<OverlayComponentProps> = ({
   context,
@@ -21,84 +22,93 @@ const MobilePortraitOverlay: React.FC<OverlayComponentProps> = ({
   systemStatus,
   controls,
 }) => {
+  const topBar = (
+    <TopBar
+      context={context}
+      title={titleMetadata}
+      systemStatus={systemStatus}
+      playbackState={playbackState}
+      controls={controls}
+      style={[baseOverlayStyles.topRow, styles.topRow]}
+    />
+  );
+
+  const centerControls = (
+    <View
+      style={[
+        baseOverlayStyles.centerControls,
+        baseOverlayStyles.centerControlsPortrait,
+        styles.centerControls,
+      ]}
+    >
+      <IconButton
+        icon={SkipBack}
+        onPress={controls.onPlayPrevious}
+        disabled={!playbackState.hasPreviousEpisode}
+        size={40}
+      />
+      <IconButton
+        icon={playbackState.isPlaying ? Pause : Play}
+        onPress={controls.onTogglePlay}
+        size={56}
+      />
+      <IconButton
+        icon={SkipForward}
+        onPress={controls.onPlayNext}
+        disabled={!playbackState.hasNextEpisode}
+        size={40}
+      />
+    </View>
+  );
+
+  const progressSection = (
+    <ProgressSection
+      context={context}
+      progress={progress}
+      style={[baseOverlayStyles.progressSection, styles.progressSection]}
+    />
+  );
+
+  const bottomButtons = context.showBottomButtons ? (
+    <BottomControls
+      context={context}
+      playbackState={playbackState}
+      controls={controls}
+      style={[styles.bottomButtons]}
+    />
+  ) : undefined;
+
+  const sideRail = context.showSideActions ? <SideActionRail context={context} controls={controls} /> : undefined;
+
   return (
-    <>
-      <View
-        style={[
-          baseOverlayStyles.content,
-          baseOverlayStyles.contentPortrait,
-          styles.content,
-        ]}
-        pointerEvents="auto"
-      >
-        <TopBar
-          context={context}
-          title={titleMetadata}
-          systemStatus={systemStatus}
-          playbackState={playbackState}
-          controls={controls}
-          style={styles.topRow}
-        />
-        <View
-          style={[
-            baseOverlayStyles.centerControls,
-            baseOverlayStyles.centerControlsPortrait,
-            styles.centerControls,
-          ]}
-        >
-          <IconButton
-            icon={SkipBack}
-            onPress={controls.onPlayPrevious}
-            disabled={!playbackState.hasPreviousEpisode}
-            size={40}
-          />
-          <IconButton
-            icon={playbackState.isPlaying ? Pause : Play}
-            onPress={controls.onTogglePlay}
-            size={56}
-          />
-          <IconButton
-            icon={SkipForward}
-            onPress={controls.onPlayNext}
-            disabled={!playbackState.hasNextEpisode}
-            size={40}
-          />
-        </View>
-        <View
-          style={[
-            baseOverlayStyles.bottomSection,
-            baseOverlayStyles.bottomSectionPortrait,
-            styles.bottomSection,
-          ]}
-        >
-          <ProgressSection context={context} progress={progress} style={styles.progressSection} />
-          <BottomControls context={context} playbackState={playbackState} controls={controls} style={styles.bottomButtons} />
-        </View>
-      </View>
-      <SideActionRail context={context} controls={controls} />
-    </>
+    <OverlayLayout
+      context={context}
+      topBar={topBar}
+      centerControls={centerControls}
+      progressSection={progressSection}
+      bottomControls={bottomButtons}
+      sideRail={sideRail}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingTop: 6,
-    paddingBottom: 12,
-  },
   topRow: {
+    paddingHorizontal: 24,
     marginTop: -6,
   },
   centerControls: {
-    marginTop: 20,
-  },
-  bottomSection: {
-    marginTop: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   progressSection: {
-    marginBottom: 10,
+    paddingHorizontal: 24,
+    marginBottom: 8,
   },
   bottomButtons: {
+    paddingHorizontal: 16,
     paddingBottom: 0,
   },
 });

@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from "react";
-import { StyleSheet, View, LayoutChangeEvent } from "react-native";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react-native";
+import OverlayLayout from "@/components/player/overlays/OverlayLayout";
 import { baseOverlayStyles } from "@/components/player/overlays/shared/baseStyles";
 import TopBar from "@/components/player/overlays/shared/TopBar";
 import ProgressSection from "@/components/player/overlays/shared/ProgressSection";
@@ -11,7 +12,7 @@ import type { OverlayComponentProps } from "@/components/player/overlays/types";
 
 /**
  * 场景：手机竖屏全屏模式。
- * 特点：保留底部快捷按钮、侧边操作栏居中悬浮、交互元素拉开间距。
+ * 通过 OverlayLayout 结合测量结果，保证控件在黑边内精准定位并兼顾安全区。
  */
 const MobilePortraitFullscreenOverlay: React.FC<OverlayComponentProps> = ({
   context,
@@ -21,118 +22,95 @@ const MobilePortraitFullscreenOverlay: React.FC<OverlayComponentProps> = ({
   systemStatus,
   controls,
 }) => {
-  const [contentLayout, setContentLayout] = useState<{ y: number; height: number } | null>(null);
-  const [centerAdjustment, setCenterAdjustment] = useState(0);
-
-  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
-    const { y, height } = event.nativeEvent.layout;
-    setContentLayout({ y, height });
-  }, []);
-
-  const handleCenterLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      if (!contentLayout) {
-        return;
-      }
-      const { y, height } = event.nativeEvent.layout;
-      const absoluteCenter = contentLayout.y + y + height / 2;
-      const targetCenter = contentLayout.y + contentLayout.height / 2;
-      const adjustment = targetCenter - absoluteCenter;
-      if (Math.abs(adjustment - centerAdjustment) > 0.5) {
-        setCenterAdjustment(adjustment);
-      }
-    },
-    [centerAdjustment, contentLayout],
+  const topBar = (
+    <TopBar
+      context={context}
+      title={titleMetadata}
+      systemStatus={systemStatus}
+      playbackState={playbackState}
+      controls={controls}
+      style={[baseOverlayStyles.topRow, styles.topRow]}
+    />
   );
 
+  const centerControls = (
+    <View
+      style={[
+        baseOverlayStyles.centerControls,
+        baseOverlayStyles.centerControlsPortrait,
+        styles.centerControls,
+      ]}
+    >
+      <IconButton
+        icon={SkipBack}
+        onPress={controls.onPlayPrevious}
+        disabled={!playbackState.hasPreviousEpisode}
+        size={44}
+      />
+      <IconButton
+        icon={playbackState.isPlaying ? Pause : Play}
+        onPress={controls.onTogglePlay}
+        size={64}
+      />
+      <IconButton
+        icon={SkipForward}
+        onPress={controls.onPlayNext}
+        disabled={!playbackState.hasNextEpisode}
+        size={44}
+      />
+    </View>
+  );
+
+  const progressSection = (
+    <ProgressSection
+      context={context}
+      progress={progress}
+      style={[baseOverlayStyles.progressSection, styles.progressSection]}
+    />
+  );
+
+  const bottomControls = (
+    <BottomControls
+      context={context}
+      playbackState={playbackState}
+      controls={controls}
+      style={styles.bottomButtons}
+    />
+  );
+
+  const sideRail = context.showSideActions ? <SideActionRail context={context} controls={controls} /> : undefined;
+
   return (
-    <>
-      <View
-        style={[
-          baseOverlayStyles.content,
-          baseOverlayStyles.contentPortrait,
-          styles.content,
-        ]}
-        onLayout={handleContentLayout}
-        pointerEvents="auto"
-      >
-        <TopBar
-          context={context}
-          title={titleMetadata}
-          systemStatus={systemStatus}
-          playbackState={playbackState}
-          controls={controls}
-          style={styles.topRow}
-        />
-        <View
-          style={[
-            baseOverlayStyles.centerControls,
-            baseOverlayStyles.centerControlsPortrait,
-            styles.centerControls,
-            centerAdjustment !== 0 ? { transform: [{ translateY: centerAdjustment }] } : null,
-          ]}
-          onLayout={handleCenterLayout}
-        >
-          <IconButton
-            icon={SkipBack}
-            onPress={controls.onPlayPrevious}
-            disabled={!playbackState.hasPreviousEpisode}
-            size={40}
-          />
-          <IconButton
-            icon={playbackState.isPlaying ? Pause : Play}
-            onPress={controls.onTogglePlay}
-            size={56}
-          />
-          <IconButton
-            icon={SkipForward}
-            onPress={controls.onPlayNext}
-            disabled={!playbackState.hasNextEpisode}
-            size={40}
-          />
-        </View>
-        <View
-          style={[
-            baseOverlayStyles.bottomSection,
-            baseOverlayStyles.bottomSectionPortrait,
-            styles.bottomSection,
-          ]}
-        >
-          <ProgressSection context={context} progress={progress} style={styles.progressSection} />
-          <BottomControls
-            context={context}
-            playbackState={playbackState}
-            controls={controls}
-            style={styles.bottomButtons}
-          />
-        </View>
-      </View>
-      <SideActionRail context={context} controls={controls} />
-    </>
+    <OverlayLayout
+      context={context}
+      isFullscreen
+      topBar={topBar}
+      centerControls={centerControls}
+      progressSection={progressSection}
+      bottomControls={bottomControls}
+      sideRail={sideRail}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
   topRow: {
-    marginTop: -2,
+    paddingHorizontal: 28,
+    marginTop: 0,
   },
   centerControls: {
-    marginTop: 30,
-  },
-  bottomSection: {
-    marginTop: 18,
-    paddingBottom: 20,
-    gap: 18,
+    paddingHorizontal: 36,
+    paddingVertical: 16,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.38)",
   },
   progressSection: {
-    marginBottom: 16,
+    paddingHorizontal: 28,
+    marginBottom: 12,
   },
   bottomButtons: {
-    paddingBottom: 16,
+    paddingHorizontal: 18,
+    paddingBottom: 20,
   },
 });
 

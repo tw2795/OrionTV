@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
+import { LayoutChangeEvent, StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
 import { Heart, Settings } from "lucide-react-native";
 import { IconButton } from "@/components/player/overlays/shared/IconButton";
 import { BatteryIndicator, formatClock } from "@/components/player/overlays/shared/systemStatus";
@@ -21,6 +21,7 @@ export interface TopBarProps {
   style?: StyleProp<ViewStyle>;
   titleStyle?: StyleProp<TextStyle>;
   subtitleStyle?: StyleProp<TextStyle>;
+  onLayout?: (event: LayoutChangeEvent) => void;
   showFavoriteButton?: boolean;
   showSettingsButton?: boolean;
   showBatteryStatus?: boolean;
@@ -40,6 +41,7 @@ const TopBar: React.FC<TopBarProps> = ({
   showSettingsButton = true,
   showBatteryStatus = true,
   showClock = true,
+  onLayout,
 }) => {
   const isPortrait = context.layout === "portrait";
   const combinedTitle =
@@ -48,7 +50,7 @@ const TopBar: React.FC<TopBarProps> = ({
       : title.title || title.episodeLabel;
 
   return (
-    <View style={[baseOverlayStyles.topRow, style]}>
+    <View style={[baseOverlayStyles.topRow, style]} onLayout={onLayout}>
       <View style={baseOverlayStyles.titleContainer}>
         <Text
           style={[

@@ -6,7 +6,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { api } from "@/services/api";
 import VideoCard from "@/components/VideoCard";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Search, Settings, LogOut, Heart, Trash2 } from "lucide-react-native";
+import { Search, Settings, LogOut, Trash2 } from "lucide-react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StyledButton } from "@/components/StyledButton";
 import useHomeStore, { RowItem, Category } from "@/stores/homeStore";
 import useAuthStore from "@/stores/authStore";
@@ -220,7 +221,7 @@ export default function HomeScreen() {
         </View>
         <View style={dynamicStyles.rightHeaderButtons}>
           <StyledButton style={dynamicStyles.iconButton} onPress={() => router.push("/favorites")} variant="ghost">
-            <Heart color={colorScheme === "dark" ? "white" : "black"} size={24} />
+            <MaterialIcons name="star-outline" color={colorScheme === "dark" ? "white" : "black"} size={24} />
           </StyledButton>
           {/* 只在"最近播放"分类显示删除按钮 */}
           {isPlayRecordsCategory && (

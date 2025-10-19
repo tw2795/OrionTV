@@ -1,6 +1,16 @@
 import React from "react";
-import { GestureResponderEvent, Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
-import { Maximize2 } from "lucide-react-native";
+import {
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { OverlayCommonContext, ProgressSectionPayload } from "@/components/player/overlays/types";
 import { baseOverlayStyles } from "@/components/player/overlays/shared/baseStyles";
 import { IconButton } from "@/components/player/overlays/shared/IconButton";
@@ -11,9 +21,10 @@ export interface ProgressSectionProps {
   progress: ProgressSectionPayload;
   style?: StyleProp<ViewStyle>;
   timeLabelStyle?: StyleProp<TextStyle>;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
-const ProgressSection: React.FC<ProgressSectionProps> = ({ context, progress, style, timeLabelStyle }) => {
+const ProgressSection: React.FC<ProgressSectionProps> = ({ context, progress, style, timeLabelStyle, onLayout }) => {
   const knobSize = progress.knobSize ?? DEFAULT_KNOB_SIZE;
   const isPortrait = context.layout === "portrait";
 
@@ -25,7 +36,7 @@ const ProgressSection: React.FC<ProgressSectionProps> = ({ context, progress, st
   };
 
   return (
-    <View style={[baseOverlayStyles.progressSection, style]}>
+    <View style={[baseOverlayStyles.progressSection, style]} onLayout={onLayout}>
       <Text
         style={[
           baseOverlayStyles.timeLabel,
@@ -67,11 +78,15 @@ const ProgressSection: React.FC<ProgressSectionProps> = ({ context, progress, st
         {progress.durationLabel}
       </Text>
       {progress.showFullscreenToggle && progress.onToggleFullscreen ? (
-        <IconButton icon={Maximize2} onPress={progress.onToggleFullscreen} size={20} />
+        <IconButton icon={ScreenFullIcon} onPress={progress.onToggleFullscreen} size={20} />
       ) : null}
     </View>
   );
 };
+
+const ScreenFullIcon: React.FC<{ color?: string; size?: number }> = ({ color = "#fff", size = 24 }) => (
+  <MaterialCommunityIcons name="fullscreen" color={color} size={size} />
+);
 
 const styles = StyleSheet.create({
   progressKnob: {

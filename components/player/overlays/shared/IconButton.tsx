@@ -1,9 +1,11 @@
-import React from "react";
+import React, { ComponentType } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
 
+type IconComponent = LucideIcon | ComponentType<{ color?: string; size?: number }>;
+
 interface IconButtonProps {
-  icon: LucideIcon;
+  icon: IconComponent;
   onPress?: () => void;
   disabled?: boolean;
   active?: boolean;
@@ -11,21 +13,25 @@ interface IconButtonProps {
   style?: any;
 }
 
-export const IconButton: React.FC<IconButtonProps> = ({ icon: Icon, onPress, disabled, active, size = 24, style }) => (
-  <Pressable
-    disabled={disabled}
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.iconButton,
-      active && styles.iconButtonActive,
-      disabled && styles.iconButtonDisabled,
-      pressed && !disabled && styles.iconButtonPressed,
-      style,
-    ]}
-  >
-    <Icon color={disabled ? "#666" : active ? "#00D8A4" : "#fff"} size={size} />
-  </Pressable>
-);
+export const IconButton: React.FC<IconButtonProps> = ({ icon, onPress, disabled, active, size = 24, style }) => {
+  const ResolvedIcon = icon as ComponentType<{ color?: string; size?: number }>;
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconButton,
+        active && styles.iconButtonActive,
+        disabled && styles.iconButtonDisabled,
+        pressed && !disabled && styles.iconButtonPressed,
+        style,
+      ]}
+    >
+      <ResolvedIcon color={disabled ? "#666" : active ? "#00D8A4" : "#fff"} size={size} />
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   iconButton: {
@@ -44,4 +50,3 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,216,164,0.18)",
   },
 });
-

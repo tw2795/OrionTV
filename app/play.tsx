@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, memo, useMemo, useState } from "react";
-import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Platform, StatusBar } from "react-native";
+import { StyleSheet, TouchableOpacity, BackHandler, AppState, AppStateStatus, View, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Video } from "expo-av";
 import { useKeepAwake } from "expo-keep-awake";
@@ -283,7 +283,6 @@ export default function PlayScreen() {
           logger.warn(`[UI] Failed to exit mobile fullscreen`, error);
         }
       }
-      StatusBar.setHidden(true, "fade");
       handleToggleControlsVisibility(false);
       setMobileFullscreenMode(false);
       return;
@@ -362,24 +361,11 @@ export default function PlayScreen() {
       return;
     }
 
-    if (Platform.OS !== "android" && Platform.OS !== "ios") {
-      return;
-    }
-
-    StatusBar.setHidden(true, "fade");
-  }, [isBaselineMobile, isPortrait, mobileFullscreenMode]);
-
-  useEffect(() => {
-    if (!isBaselineMobile) {
-      return;
-    }
-
     return () => {
       if (Platform.OS === "android" || Platform.OS === "ios") {
         ScreenOrientation.unlockAsync().catch((error) => {
           logger.warn(`[UI] Failed to unlock orientation on cleanup`, error);
         });
-        StatusBar.setHidden(true, "fade");
       }
     };
   }, [isBaselineMobile]);

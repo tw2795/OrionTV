@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import type { GestureResponderHandlers, LayoutChangeEvent } from "react-native";
+import type { AVPlaybackStatus, AVPlaybackStatusSuccess } from "expo-av";
 
 import { CenterPlayOverlay } from "@/components/CenterPlayOverlay";
 import { PlayerControls } from "@/components/PlayerControls";
@@ -24,6 +25,13 @@ interface TvOverlayProps {
   setShowControls: (show: boolean) => void;
 }
 
+const toLoadedStatus = (status: AVPlaybackStatus | null): AVPlaybackStatusSuccess | null => {
+  if (status && status.isLoaded) {
+    return status as AVPlaybackStatusSuccess;
+  }
+  return null;
+};
+
 const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) => {
   const {
     status,
@@ -41,10 +49,11 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
 
   const [progressWidth, setProgressWidth] = useState(0);
 
-  const durationMillis = status?.isLoaded ? status.durationMillis ?? 0 : 0;
-  const positionMillis = status?.isLoaded ? status.positionMillis ?? 0 : 0;
+  const loadedStatus = useMemo(() => toLoadedStatus(status), [status]);
+  const durationMillis = loadedStatus?.durationMillis ?? 0;
+  const positionMillis = loadedStatus?.positionMillis ?? 0;
+  const playableDuration = loadedStatus?.playableDurationMillis ?? 0;
   const currentProgress = durationMillis > 0 ? (isSeeking ? seekPosition : progressPosition) : 0;
-  const playableDuration = status?.playableDurationMillis ?? 0;
   const bufferedProgress =
     durationMillis > 0 ? Math.max(currentProgress, Math.min(playableDuration / durationMillis, 1)) : currentProgress;
 
@@ -81,14 +90,14 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
 
   const playbackStateSnapshot: PlaybackStateSnapshot = useMemo(
     () => ({
-      isPlaying: status?.isLoaded ? !!status.isPlaying : false,
+      isPlaying: loadedStatus?.isPlaying ?? false,
       hasNextEpisode: currentEpisodeIndex < episodes.length - 1,
       hasPreviousEpisode: currentEpisodeIndex > 0,
       isFavorited,
       introMarked: false,
       outroMarked: false,
     }),
-    [status?.isLoaded, status?.isPlaying, currentEpisodeIndex, episodes.length, isFavorited],
+    [loadedStatus, currentEpisodeIndex, episodes.length, isFavorited],
   );
 
   const controls = useMemo<PlaybackControlHandlers>(
@@ -112,7 +121,7 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
       onOutroToggle: () => {},
       onShowEpisodeModal: () => {},
       onShowSourceModal: () => {},
-      onShowSpeedModal: setShowSpeedModal,
+      onShowSpeedModal: () => setShowSpeedModal(true),
       onLockControls: () => {},
       onUnlockControls: () => {},
     }),

@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
+import { LayoutChangeEvent, Pressable, StyleProp, Text, TextStyle, View, ViewStyle } from "react-native";
 import { baseOverlayStyles } from "@/components/player/overlays/shared/baseStyles";
 import type {
   OverlayCommonContext,
@@ -13,15 +13,16 @@ export interface BottomControlsProps {
   controls: PlaybackControlHandlers;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
-const BottomControls: React.FC<BottomControlsProps> = ({ context, playbackState, controls, style, textStyle }) => {
+const BottomControls: React.FC<BottomControlsProps> = ({ context, playbackState, controls, style, textStyle, onLayout }) => {
   if (!context.showBottomButtons) {
     return null;
   }
 
   return (
-    <View style={[baseOverlayStyles.bottomButtonsRow, style]}>
+    <View style={[baseOverlayStyles.bottomButtonsRow, style]} onLayout={onLayout}>
       <Pressable style={baseOverlayStyles.bottomButton} onPress={controls.onIntroToggle}>
         <Text
           style={[
