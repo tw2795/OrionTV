@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { ThemedText } from '@/components/ThemedText';
@@ -40,39 +40,36 @@ const ResponsiveHeader: React.FC<ResponsiveHeaderProps> = ({
   const dynamicStyles = createStyles(spacing, deviceType, insets);
 
   return (
-    <>
-      {Platform.OS === 'android' && <StatusBar backgroundColor="#1c1c1e" barStyle="light-content" />}
-      <View style={dynamicStyles.container}>
-        <View style={dynamicStyles.content}>
-          {/* 左侧区域 */}
-          <View style={dynamicStyles.leftSection}>
-            {showBackButton && (
-              <TouchableOpacity
-                onPress={handleBackPress}
-                style={dynamicStyles.backButton}
-                activeOpacity={0.7}
-              >
-                <ArrowLeft size={20} color="#fff" strokeWidth={2} />
-              </TouchableOpacity>
-            )}
-          </View>
+    <View style={dynamicStyles.container}>
+      <View style={dynamicStyles.content}>
+        {/* 左侧区域 */}
+        <View style={dynamicStyles.leftSection}>
+          {showBackButton && (
+            <TouchableOpacity
+              onPress={handleBackPress}
+              style={dynamicStyles.backButton}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={20} color="#fff" strokeWidth={2} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-          {/* 中间标题区域 */}
-          <View style={dynamicStyles.centerSection}>
-            {title && (
-              <ThemedText style={dynamicStyles.title} numberOfLines={1} ellipsizeMode="tail">
-                {title}
-              </ThemedText>
-            )}
-          </View>
+        {/* 中间标题区域 */}
+        <View style={dynamicStyles.centerSection}>
+          {title && (
+            <ThemedText style={dynamicStyles.title} numberOfLines={1} ellipsizeMode="tail">
+              {title}
+            </ThemedText>
+          )}
+        </View>
 
-          {/* 右侧区域 */}
-          <View style={dynamicStyles.rightSection}>
-            {rightComponent}
-          </View>
+        {/* 右侧区域 */}
+        <View style={dynamicStyles.rightSection}>
+          {rightComponent}
         </View>
       </View>
-    </>
+    </View>
   );
 };
 

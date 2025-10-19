@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { StyleSheet, View, LayoutChangeEvent } from "react-native";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react-native";
 import { baseOverlayStyles } from "@/components/player/overlays/shared/baseStyles";
 import TopBar from "@/components/player/overlays/shared/TopBar";
@@ -21,6 +21,30 @@ const MobilePortraitFullscreenOverlay: React.FC<OverlayComponentProps> = ({
   systemStatus,
   controls,
 }) => {
+  const [contentLayout, setContentLayout] = useState<{ y: number; height: number } | null>(null);
+  const [centerAdjustment, setCenterAdjustment] = useState(0);
+
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    setContentLayout({ y, height });
+  }, []);
+
+  const handleCenterLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!contentLayout) {
+        return;
+      }
+      const { y, height } = event.nativeEvent.layout;
+      const absoluteCenter = contentLayout.y + y + height / 2;
+      const targetCenter = contentLayout.y + contentLayout.height / 2;
+      const adjustment = targetCenter - absoluteCenter;
+      if (Math.abs(adjustment - centerAdjustment) > 0.5) {
+        setCenterAdjustment(adjustment);
+      }
+    },
+    [centerAdjustment, contentLayout],
+  );
+
   return (
     <>
       <View
@@ -29,6 +53,7 @@ const MobilePortraitFullscreenOverlay: React.FC<OverlayComponentProps> = ({
           baseOverlayStyles.contentPortrait,
           styles.content,
         ]}
+        onLayout={handleContentLayout}
         pointerEvents="auto"
       >
         <TopBar
@@ -44,7 +69,9 @@ const MobilePortraitFullscreenOverlay: React.FC<OverlayComponentProps> = ({
             baseOverlayStyles.centerControls,
             baseOverlayStyles.centerControlsPortrait,
             styles.centerControls,
+            centerAdjustment !== 0 ? { transform: [{ translateY: centerAdjustment }] } : null,
           ]}
+          onLayout={handleCenterLayout}
         >
           <IconButton
             icon={SkipBack}

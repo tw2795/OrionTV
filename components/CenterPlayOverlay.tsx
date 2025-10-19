@@ -41,11 +41,13 @@ export const CenterPlayOverlay: React.FC = () => {
           </Pressable>
         ))}
 
-      <View style={[styles.timeContainer, isPaused ? styles.timeWithOverlay : styles.timeFloating]}>
-        <Text style={styles.timeText}>
-          {currentTime} / {totalTime}
-        </Text>
-      </View>
+      {!isTV && (
+        <View style={[styles.timeContainer, isPaused ? styles.timeWithOverlay : styles.timeFloating]}>
+          <Text style={styles.timeText}>
+            {currentTime} / {totalTime}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };

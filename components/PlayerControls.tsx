@@ -1,28 +1,26 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, GestureResponderEvent } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { MediaButton } from "@/components/MediaButton";
 
 import usePlayerStore from "@/stores/playerStore";
-import useDetailStore from "@/stores/detailStore";
-import { useSources } from "@/stores/sourceStore";
 import { formatTime } from "@/utils/formatTime";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 
 interface PlayerControlsProps {
   showControls: boolean;
   setShowControls: (show: boolean) => void;
+  progressSlot?: React.ReactNode;
 }
 
-export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, setShowControls }) => {
+export const PlayerControls: React.FC<PlayerControlsProps> = ({
+  showControls,
+  setShowControls: _setShowControls,
+  progressSlot,
+}) => {
   const {
     currentEpisodeIndex,
     episodes,
-    status,
-    isSeeking,
-    seekPosition,
-    progressPosition,
     playbackRate,
-    togglePlayPause,
     playEpisode,
     playPreviousEpisode,
     setShowEpisodeModal,
@@ -32,11 +30,9 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
     setOutroStartTime,
     introEndTime,
     outroStartTime,
-    seekToPosition,
   } = usePlayerStore();
 
   const { deviceType } = useResponsiveLayout();
-  const [progressBarWidth, setProgressBarWidth] = useState(0);
   const [focusResetKey, setFocusResetKey] = useState(0);
   const isTouchLayout = deviceType !== "tv";
   const highlightButtons = isTouchLayout && showControls;
@@ -47,28 +43,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
     }
   }, [deviceType, showControls]);
 
-  const onProgressBarPress = useCallback(
-    (event: GestureResponderEvent) => {
-      if (deviceType === "tv") return;
-      if (!status?.isLoaded || !status.durationMillis) return;
-
-      const { locationX } = event.nativeEvent;
-      const seekPercentage = locationX / progressBarWidth;
-      const seekMillis = seekPercentage * status.durationMillis;
-
-      seekToPosition(seekMillis);
-    },
-    [deviceType, status, progressBarWidth, seekToPosition]
-  );
-
-  const { detail } = useDetailStore();
-  const resources = useSources();
-
-  const videoTitle = detail?.title || "";
   const currentEpisode = episodes[currentEpisodeIndex];
-  const currentEpisodeTitle = currentEpisode?.title;
-  const currentSource = resources.find((r) => r.source === detail?.source);
-  const currentSourceName = currentSource?.source_name;
   const hasNextEpisode = currentEpisodeIndex < (episodes.length || 0) - 1;
   const hasPreviousEpisode = currentEpisodeIndex > 0;
 
@@ -80,30 +55,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({ showControls, se
 
   return (
     <View style={styles.controlsOverlay}>
-      <View style={styles.topControls}>
-        <Text style={styles.controlTitle}>
-          {videoTitle} {currentEpisodeTitle ? `- ${currentEpisodeTitle}` : ""}{" "}
-          {currentSourceName ? `(${currentSourceName})` : ""}
-        </Text>
-      </View>
-
       <View style={styles.bottomControlsContainer}>
-        <View
-          style={styles.progressBarContainer}
-          onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
-        >
-          <View style={styles.progressBarBackground} />
-          <View
-            style={[
-              styles.progressBarFilled,
-              {
-                width: `${(isSeeking ? seekPosition : progressPosition) * 100}%`,
-              },
-            ]}
-          />
-          <Pressable style={styles.progressBarTouchable} onPress={onProgressBarPress} disabled={deviceType === "tv"} />
-        </View>
-
+        {progressSlot}
         <View
           style={[
             styles.bottomControls,
@@ -182,21 +135,9 @@ const styles = StyleSheet.create({
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     padding: 20,
-  },
-  topControls: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  controlTitle: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
-    marginHorizontal: 10,
+    paddingTop: 40,
   },
   bottomControlsContainer: {
     width: "100%",
@@ -219,35 +160,6 @@ const styles = StyleSheet.create({
     flexBasis: "48%",
     minWidth: "48%",
     marginBottom: 12,
-  },
-  progressBarContainer: {
-    width: "100%",
-    height: 8,
-    position: "relative",
-    marginTop: 10,
-  },
-  progressBarBackground: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
-    borderRadius: 4,
-  },
-  progressBarFilled: {
-    position: "absolute",
-    left: 0,
-    height: 8,
-    backgroundColor: "#fff",
-    borderRadius: 4,
-  },
-  progressBarTouchable: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 30,
-    top: -10,
-    zIndex: 10,
   },
   controlButton: {
     padding: 10,

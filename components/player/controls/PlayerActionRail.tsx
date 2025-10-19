@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 
 interface PlayerActionRailProps {
   isPortrait?: boolean;
@@ -7,14 +7,41 @@ interface PlayerActionRailProps {
   children: React.ReactNode;
 }
 
-const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, alignCenter, children }) => {
-  const containerStyles = [
-    styles.container,
-    alignCenter ? styles.centered : isPortrait ? styles.portrait : styles.landscape,
-  ];
+const PlayerActionRail: React.FC<PlayerActionRailProps> = ({
+  isPortrait,
+  alignCenter,
+  children,
+}) => {
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    if (height !== containerHeight) {
+      setContainerHeight(height);
+    }
+  }, [containerHeight]);
+
+  const containerStyles = useMemo(() => {
+    const stylesArray: any[] = [styles.container];
+
+    if (alignCenter) {
+      stylesArray.push(styles.centeredBase);
+      stylesArray.push(
+        containerHeight > 0
+          ? { top: "50%", marginTop: -(containerHeight / 2) }
+          : { top: "50%" },
+      );
+    } else if (isPortrait) {
+      stylesArray.push(styles.portrait);
+    } else {
+      stylesArray.push(styles.landscape);
+    }
+
+    return stylesArray;
+  }, [alignCenter, containerHeight, isPortrait]);
 
   return (
-    <View style={containerStyles}>
+    <View style={containerStyles} onLayout={handleLayout}>
       {React.Children.map(children, (child, index) => (
         <View key={index} style={styles.buttonSlot}>
           {child}
@@ -27,13 +54,17 @@ const PlayerActionRail: React.FC<PlayerActionRailProps> = ({ isPortrait, alignCe
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    right: 24,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 28,
-    paddingHorizontal: 8,
-    paddingVertical: 14,
-    gap: 16,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 14,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  centeredBase: {
+    justifyContent: "center",
   },
   portrait: {
     top: 24,
@@ -51,6 +82,7 @@ const styles = StyleSheet.create({
   buttonSlot: {
     alignItems: "center",
     justifyContent: "center",
+    height: 44,
   },
 });
 

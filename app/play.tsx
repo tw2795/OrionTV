@@ -283,7 +283,7 @@ export default function PlayScreen() {
           logger.warn(`[UI] Failed to exit mobile fullscreen`, error);
         }
       }
-      StatusBar.setHidden(false, "fade");
+      StatusBar.setHidden(true, "fade");
       handleToggleControlsVisibility(false);
       setMobileFullscreenMode(false);
       return;
@@ -366,7 +366,7 @@ export default function PlayScreen() {
       return;
     }
 
-    StatusBar.setHidden(mobileFullscreenMode || !isPortrait, "fade");
+    StatusBar.setHidden(true, "fade");
   }, [isBaselineMobile, isPortrait, mobileFullscreenMode]);
 
   useEffect(() => {
@@ -379,7 +379,7 @@ export default function PlayScreen() {
         ScreenOrientation.unlockAsync().catch((error) => {
           logger.warn(`[UI] Failed to unlock orientation on cleanup`, error);
         });
-        StatusBar.setHidden(false, "fade");
+        StatusBar.setHidden(true, "fade");
       }
     };
   }, [isBaselineMobile]);

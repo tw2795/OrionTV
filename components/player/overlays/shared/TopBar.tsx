@@ -21,6 +21,10 @@ export interface TopBarProps {
   style?: StyleProp<ViewStyle>;
   titleStyle?: StyleProp<TextStyle>;
   subtitleStyle?: StyleProp<TextStyle>;
+  showFavoriteButton?: boolean;
+  showSettingsButton?: boolean;
+  showBatteryStatus?: boolean;
+  showClock?: boolean;
 }
 
 const TopBar: React.FC<TopBarProps> = ({
@@ -32,6 +36,10 @@ const TopBar: React.FC<TopBarProps> = ({
   style,
   titleStyle,
   subtitleStyle,
+  showFavoriteButton = true,
+  showSettingsButton = true,
+  showBatteryStatus = true,
+  showClock = true,
 }) => {
   const isPortrait = context.layout === "portrait";
   const combinedTitle =
@@ -59,12 +67,23 @@ const TopBar: React.FC<TopBarProps> = ({
         ) : null}
       </View>
       <View style={baseOverlayStyles.topActions}>
-        <IconButton icon={Heart} onPress={controls.onFavorite} active={playbackState.isFavorited} size={context.topIconSize} />
-        <IconButton icon={Settings} onPress={controls.onShowSpeedModal} size={context.topIconSize} />
-        <View style={baseOverlayStyles.systemInfo}>
-          <BatteryIndicator level={systemStatus.batteryLevel} />
-          <Text style={baseOverlayStyles.systemInfoTime}>{formatClock(systemStatus.currentTime)}</Text>
-        </View>
+        {showFavoriteButton ? (
+          <IconButton
+            icon={Heart}
+            onPress={controls.onFavorite}
+            active={playbackState.isFavorited}
+            size={context.topIconSize}
+          />
+        ) : null}
+        {showSettingsButton ? (
+          <IconButton icon={Settings} onPress={controls.onShowSpeedModal} size={context.topIconSize} />
+        ) : null}
+        {(showBatteryStatus || showClock) && (
+          <View style={baseOverlayStyles.systemInfo}>
+            {showBatteryStatus ? <BatteryIndicator level={systemStatus.batteryLevel} /> : null}
+            {showClock ? <Text style={baseOverlayStyles.systemInfoTime}>{formatClock(systemStatus.currentTime)}</Text> : null}
+          </View>
+        )}
       </View>
     </View>
   );

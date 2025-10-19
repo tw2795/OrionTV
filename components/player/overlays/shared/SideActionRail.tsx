@@ -18,7 +18,10 @@ const SideActionRail: React.FC<SideActionRailProps> = ({ context, controls }) =>
   const shouldShowFlip = context.deviceType === "mobile" && typeof controls.onRequestFlip === "function";
 
   return (
-    <PlayerActionRail isPortrait={isPortrait} alignCenter={context.alignSideRailCenter}>
+    <PlayerActionRail
+      isPortrait={isPortrait}
+      alignCenter={context.alignSideRailCenter}
+    >
       {typeof controls.onRequestExit === "function" ? (
         <IconButton icon={CornerUpLeft} onPress={controls.onRequestExit} size={26} />
       ) : null}

@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { Platform, View, StyleSheet } from "react-native";
+import { Platform, View, StyleSheet, StatusBar } from "react-native";
 import Toast from "react-native-toast-message";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -28,6 +28,13 @@ export default function RootLayout() {
   const { startServer, stopServer } = useRemoteControlStore();
   const { checkLoginStatus } = useAuthStore();
   const responsiveConfig = useResponsiveLayout();
+
+  useEffect(() => {
+    StatusBar.setHidden(true, "fade");
+    return () => {
+      StatusBar.setHidden(false, "fade");
+    };
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {

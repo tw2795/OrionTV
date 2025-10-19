@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, StatusBar, Platform, BackHandler, ToastAndroid } from "react-native";
+import { View, StyleSheet, ActivityIndicator, FlatList, Pressable, Animated, Platform, BackHandler, ToastAndroid } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -304,9 +304,6 @@ export default function HomeScreen() {
 
   const content = (
     <ThemedView style={[commonStyles.container, dynamicStyles.container]}>
-      {/* 状态栏 */}
-      {deviceType === "mobile" && <StatusBar barStyle="light-content" />}
-
       {/* 顶部导航 */}
       {renderHeader()}
 
