@@ -117,6 +117,52 @@ export const useTVRemoteHandler = () => {
 
   useTVEventHandler(handleTVEvent);
 
+  useEffect(() => {
+    const globalTarget: any =
+      typeof globalThis !== "undefined" && typeof (globalThis as any).addEventListener === "function"
+        ? globalThis
+        : undefined;
+    if (!globalTarget) {
+      return;
+    }
+
+    const keyMap: Record<string, HWEvent["eventType"]> = {
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      ArrowUp: "up",
+      ArrowDown: "down",
+      Enter: "select",
+      " ": "select",
+    };
+
+    const handleKeyDown = (event: any) => {
+      const mapped = keyMap[event.key];
+      if (!mapped) {
+        return;
+      }
+      // 避免长按造成的重复触发
+      if (event.repeat) {
+        if (typeof event.preventDefault === "function") {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      handleTVEvent({
+        eventType: mapped,
+        eventKeyAction: 0,
+      } as HWEvent);
+    };
+
+    globalTarget.addEventListener("keydown", handleKeyDown);
+    return () => {
+      globalTarget.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleTVEvent]);
+
   // 处理屏幕点击事件
   const onScreenPress = () => {
     // 切换控件的显示状态

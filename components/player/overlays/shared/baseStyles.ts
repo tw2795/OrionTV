@@ -58,11 +58,9 @@ export const baseOverlayStyles = StyleSheet.create({
     alignSelf: "center",
   },
   centerControlsPortrait: {
-    marginTop: 24,
     gap: 36,
   },
   centerControlsLandscape: {
-    marginTop: 12,
   },
   bottomSection: {
     gap: 16,

@@ -176,23 +176,23 @@ export const MobilePortraitPlayer: React.FC<MobilePortraitPlayerProps> = ({
                   </View>
                 )}
               </TouchableOpacity>
-      {(showControls || controlsLocked) && (
-        <CommonPlayerOverlay
-          layout="portrait"
-          deviceType="mobile"
-          showControls={showControls}
-          controlsLocked={controlsLocked}
-          onUnlockControls={() => setControlsLocked(false)}
-          onLockControls={() => setControlsLocked(true)}
-          onToggleControls={onToggleControls}
-          onInteract={onInteract}
-          isFullscreen={false}
-          onToggleFullscreen={onToggleFullscreen}
-        />
-      )}
-    </View>
-  </View>
+            </View>
+          </View>
         </View>
+        {(showControls || controlsLocked) && (
+          <CommonPlayerOverlay
+            layout="portrait"
+            deviceType="mobile"
+            showControls={showControls}
+            controlsLocked={controlsLocked}
+            onUnlockControls={() => setControlsLocked(false)}
+            onLockControls={() => setControlsLocked(true)}
+            onToggleControls={onToggleControls}
+            onInteract={onInteract}
+            isFullscreen={false}
+            onToggleFullscreen={onToggleFullscreen}
+          />
+        )}
       </View>
 
       <View style={styles.infoSection}>
@@ -271,6 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     paddingTop: 28,
     paddingBottom: 8,
+    position: "relative",
   },
   videoWrapper: {
     paddingHorizontal: 16,

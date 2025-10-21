@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { Home, Heart, Search, Settings, Tv } from 'lucide-react-native';
+import { Home, Search, Settings, Tv } from 'lucide-react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ThemedText } from '@/components/ThemedText';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { DeviceUtils } from '@/utils/DeviceUtils';
@@ -9,40 +10,42 @@ import { DeviceUtils } from '@/utils/DeviceUtils';
 interface NavigationItem {
   name: string;
   label: string;
-  icon: any;
   route: string;
+  renderIcon: (color: string, size: number) => React.ReactNode;
 }
 
 const navigationItems: NavigationItem[] = [
   {
     name: 'home',
     label: '首页',
-    icon: Home,
     route: '/',
+    renderIcon: (color, size) => <Home color={color} size={size} />,
   },
   {
     name: 'live',
     label: '直播',
-    icon: Tv,
     route: '/live',
+    renderIcon: (color, size) => <Tv color={color} size={size} />,
   },
   {
     name: 'search',
     label: '搜索',
-    icon: Search,
     route: '/search',
+    renderIcon: (color, size) => <Search color={color} size={size} />,
   },
   {
     name: 'favorites',
     label: '收藏',
-    icon: Heart,
     route: '/favorites',
+    renderIcon: (color, size) => (
+      <MaterialCommunityIcons name="star-outline" color={color} size={size} />
+    ),
   },
   {
     name: 'settings',
     label: '设置',
-    icon: Settings,
     route: '/settings',
+    renderIcon: (color, size) => <Settings color={color} size={size} />,
   },
 ];
 
@@ -97,7 +100,6 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavigationProps> = ({
     <View style={[styles.container, dynamicStyles.container]}>
       {filteredNavigationItems.map((item) => {
         const isActive = isActiveRoute(item.route);
-        const IconComponent = item.icon;
 
         return (
           <TouchableOpacity
@@ -106,10 +108,7 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavigationProps> = ({
             onPress={() => handleNavigation(item.route)}
             activeOpacity={0.7}
           >
-            <IconComponent
-              size={24}
-              color={isActive ? activeColor : inactiveColor}
-            />
+            {item.renderIcon(isActive ? activeColor : inactiveColor, 24)}
             <ThemedText
               style={[
                 styles.tabLabel,

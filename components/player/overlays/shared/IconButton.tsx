@@ -1,37 +1,41 @@
-import React, { ComponentType } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import React, { ComponentType, forwardRef } from "react";
+import { Pressable, StyleSheet, PressableProps, View, PressableStateCallbackType, StyleProp, ViewStyle } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
 
 type IconComponent = LucideIcon | ComponentType<{ color?: string; size?: number }>;
 
-interface IconButtonProps {
+interface IconButtonProps extends PressableProps {
   icon: IconComponent;
-  onPress?: () => void;
-  disabled?: boolean;
   active?: boolean;
   size?: number;
-  style?: any;
 }
 
-export const IconButton: React.FC<IconButtonProps> = ({ icon, onPress, disabled, active, size = 24, style }) => {
-  const ResolvedIcon = icon as ComponentType<{ color?: string; size?: number }>;
+export const IconButton = forwardRef<View, IconButtonProps>(
+  ({ icon, disabled, active, size = 24, style, ...rest }, ref) => {
+    const ResolvedIcon = icon as ComponentType<{ color?: string; size?: number }>;
 
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.iconButton,
-        active && styles.iconButtonActive,
-        disabled && styles.iconButtonDisabled,
-        pressed && !disabled && styles.iconButtonPressed,
-        style,
-      ]}
-    >
-      <ResolvedIcon color={disabled ? "#666" : active ? "#00D8A4" : "#fff"} size={size} />
-    </Pressable>
-  );
-};
+    const resolvedStyle = (state: PressableStateCallbackType): StyleProp<ViewStyle> => [
+      styles.iconButton,
+      active && styles.iconButtonActive,
+      disabled && styles.iconButtonDisabled,
+      state.pressed && !disabled && styles.iconButtonPressed,
+      typeof style === "function" ? style(state) : style,
+    ];
+
+    return (
+      <Pressable
+        ref={ref}
+        disabled={disabled}
+        style={resolvedStyle}
+        {...rest}
+      >
+        <ResolvedIcon color={disabled ? "#666" : active ? "#00D8A4" : "#fff"} size={size} />
+      </Pressable>
+    );
+  }
+);
+
+IconButton.displayName = "IconButton";
 
 const styles = StyleSheet.create({
   iconButton: {

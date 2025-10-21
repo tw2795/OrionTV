@@ -42,6 +42,12 @@ interface VideoOverlayStyles {
   sideRail: ViewStyle;
 }
 
+interface OverlaySpacing {
+  topPadding: number;
+  bottomPadding: number;
+  stackGap: number;
+}
+
 interface VideoOverlayLayoutResult {
   measurements: VideoOverlayMeasurements;
   styles: VideoOverlayStyles;
@@ -76,6 +82,74 @@ const pickValidTop = (value: number, fallback: number): number => {
     return value;
   }
   return fallback;
+};
+
+interface SpacingParams {
+  layout: OverlayLayout;
+  variant: OverlayVariant;
+  deviceType: "mobile" | "tablet";
+  isFullscreen: boolean;
+}
+
+const getOverlaySpacing = ({ layout, variant, deviceType, isFullscreen }: SpacingParams): OverlaySpacing => {
+  if (layout === "portrait") {
+    if (variant === "mobilePortraitFullscreen" || isFullscreen) {
+      return {
+        topPadding: 18,
+        bottomPadding: 20,
+        stackGap: 14,
+      };
+    }
+    return {
+      topPadding: 14,
+      bottomPadding: 16,
+      stackGap: 12,
+    };
+  }
+
+  if (layout === "landscape") {
+    if (variant === "mobileLandscape" && deviceType === "mobile") {
+      return {
+        topPadding: 20,
+        bottomPadding: 16,
+        stackGap: 14,
+      };
+    }
+
+    if (deviceType === "tablet") {
+      return {
+        topPadding: 24,
+        bottomPadding: 20,
+        stackGap: 16,
+      };
+    }
+
+    return {
+      topPadding: 22,
+      bottomPadding: 18,
+      stackGap: 14,
+    };
+  }
+
+  return {
+    topPadding: 18,
+    bottomPadding: 18,
+    stackGap: 14,
+  };
+};
+
+const horizontalInsetBias = (layout: OverlayLayout, deviceType: "mobile" | "tablet", variant: OverlayVariant): number => {
+  if (layout === "landscape" && deviceType === "mobile") {
+    if (variant === "mobileLandscape") {
+      return 12;
+    }
+  }
+  if (layout === "portrait" && deviceType === "mobile") {
+    if (variant === "mobilePortraitFullscreen") {
+      return 6;
+    }
+  }
+  return 0;
 };
 
 export const useVideoOverlayLayout = ({
@@ -166,6 +240,11 @@ export const useVideoOverlayLayout = ({
     };
   }, [aspectRatio, sectionHeights, videoRect]);
 
+  const spacing = useMemo<OverlaySpacing>(
+    () => getOverlaySpacing({ layout, variant, deviceType, isFullscreen }),
+    [deviceType, isFullscreen, layout, variant]
+  );
+
   const styles = useMemo<VideoOverlayStyles>(() => {
     const baseContainer: ViewStyle = videoRect
       ? {
@@ -206,8 +285,22 @@ export const useVideoOverlayLayout = ({
     // 以视频容器为唯一坐标系：先定位中心、黑边，再叠加安全区，从而同时适配全屏、带刘海及普通模式。
     const centerOfVideo = y + height / 2;
     const verticalBlack = blackBars.vertical;
-    const contentBottom = contentBounds ? contentBounds.bottom : y + height;
-    const contentTop = contentBounds ? contentBounds.top : y;
+    const containerTop = y + insetTop;
+    const containerBottom = y + height - insetBottom;
+    const contentTopEdge = contentBounds ? contentBounds.top : y;
+    const contentBottomEdge = contentBounds ? contentBounds.bottom : y + height;
+
+    const safeTopAnchor = Math.max(containerTop, contentTopEdge + spacing.topPadding);
+    const safeBottomAnchor = Math.min(containerBottom, contentBottomEdge - spacing.bottomPadding);
+
+    const clampSectionTop = (value: number, sectionHeight: number): number => {
+      if (!Number.isFinite(value)) {
+        return safeTopAnchor;
+      }
+      const minTop = containerTop;
+      const maxTop = containerBottom - Math.max(sectionHeight, 0);
+      return clampNumber(value, minTop, Math.max(minTop, maxTop));
+    };
 
     const topBarHeight = sectionHeights.topBar;
     const centerHeight = sectionHeights.centerControls;
@@ -216,42 +309,86 @@ export const useVideoOverlayLayout = ({
     const bottomButtonsHeight = sectionHeights.bottomButtons;
     const sideRailHeight = sectionHeights.sideRail;
 
-    // portraitTopBase / portraitBottomBase 分别对应上下黑边中心，作为顶部与底部元素的参考线。
     const portraitTopBase = y + verticalBlack / 2;
-    const portraitBottomBase = y + height - verticalBlack / 2;
 
-    const topBarTop = pickValidTop(
-      portraitTopBase - topBarHeight / 2 + insetTop,
-      y + insetTop
-    );
+    const hasTopBar = topBarHeight > 0.1;
+    const hasBottomButtons = bottomButtonsHeight > 0.1;
+    const hasBottomControls = bottomControlsHeight > 0.1;
+    const hasProgress = progressHeight > 0.1;
 
-    const centerControlsTop = pickValidTop(
-      centerOfVideo - centerHeight / 2,
-      centerOfVideo
-    );
+    // 顶部标题栏定位：
+    // - 移动端竖屏（非全屏）与横屏：始终贴合安全区顶部，避免出现“向下溢出”
+    // - 其它场景：如果存在明显黑边则尽量居中于上方黑边，否则贴安全区
+    const forceSafeTopForTopBar =
+      (deviceType === "mobile" && layout === "portrait" && !isFullscreen) ||
+      (deviceType === "mobile" && layout === "landscape");
 
-    const bottomControlsTop = pickValidTop(
-      portraitBottomBase - bottomControlsHeight / 2 - insetBottom,
-      contentBottom - bottomControlsHeight - insetBottom
-    );
+    const computedTopBarTop = forceSafeTopForTopBar
+      // 强制贴合容器顶部（0 或极小偏移），避免向下溢出
+      ? containerTop
+      : verticalBlack > spacing.topPadding * 1.5
+        ? portraitTopBase - topBarHeight / 2 + insetTop
+        : safeTopAnchor;
 
-    const progressTop = pickValidTop(
-      contentBottom - progressHeight + progressHeight * 0.25 - insetBottom * 0.5,
-      contentBottom - progressHeight - insetBottom
-    );
+    const topBarTop = hasTopBar
+      ? clampSectionTop(computedTopBarTop, topBarHeight)
+      : safeTopAnchor;
 
-    const bottomButtonsTop = pickValidTop(
-      portraitBottomBase - bottomButtonsHeight - insetBottom - progressHeight - 12,
-      contentBottom - bottomButtonsHeight - insetBottom
-    );
+    const centerControlsTop = clampSectionTop(centerOfVideo - centerHeight / 2, centerHeight);
 
-    const sideRailTop = pickValidTop(
-      centerOfVideo - sideRailHeight / 2,
-      centerOfVideo
-    );
+    let bottomButtonsTop = hasBottomButtons
+      ? clampSectionTop(safeBottomAnchor - bottomButtonsHeight, bottomButtonsHeight)
+      : safeBottomAnchor;
+
+    // 手机竖屏全屏：底部按钮需要显示在“底部 padding”区域内
+    if (hasBottomButtons && deviceType === "mobile" && layout === "portrait" && variant === "mobilePortraitFullscreen") {
+      bottomButtonsTop = clampSectionTop(containerBottom - spacing.bottomPadding - bottomButtonsHeight, bottomButtonsHeight);
+    }
+
+    const bottomControlsAnchor = hasBottomButtons
+      ? bottomButtonsTop - spacing.stackGap
+      : safeBottomAnchor;
+
+    let bottomControlsTop = hasBottomControls
+      ? clampSectionTop(bottomControlsAnchor - bottomControlsHeight, bottomControlsHeight)
+      : bottomControlsAnchor;
+
+    // 手机竖屏全屏：底部控制栏应显示在下方 padding 内
+    if (hasBottomControls && deviceType === "mobile" && layout === "portrait" && variant === "mobilePortraitFullscreen") {
+      bottomControlsTop = clampSectionTop(containerBottom - spacing.bottomPadding - bottomControlsHeight, bottomControlsHeight);
+    }
+
+    const lowestOccupiedTop = hasBottomControls
+      ? bottomControlsTop
+      : hasBottomButtons
+        ? bottomButtonsTop
+        : safeBottomAnchor;
+
+    const progressAnchor =
+      hasBottomControls || hasBottomButtons
+        ? lowestOccupiedTop - spacing.stackGap
+        : safeBottomAnchor;
+
+    // 进度条定位：移动端竖屏全屏时，按照需求仅在底部安全区上方，并上移进度条高度的 1/4。
+    let progressTop = hasProgress
+      ? clampSectionTop(progressAnchor - progressHeight, progressHeight)
+      : progressAnchor;
+
+    if (
+      hasProgress &&
+      deviceType === "mobile" &&
+      layout === "portrait" &&
+      variant === "mobilePortraitFullscreen"
+    ) {
+      const quarter = progressHeight * 0.25;
+      // 进度条相对底部 padding 上移 1/4 高度
+      progressTop = clampSectionTop(progressTop + quarter, progressHeight);
+    }
+
+    const sideRailTop = clampSectionTop(centerOfVideo - sideRailHeight / 2, sideRailHeight);
 
     const baseHorizontalInsets = layout === "landscape" ? Math.max(insetLeft, insetRight) : 0;
-    const sideRailRight = Math.max(20, 20 + insetRight);
+    let sideRailRight = Math.max(20, 20 + insetRight);
 
     const topBarStyle: ViewStyle = {
       position: "absolute",
@@ -285,7 +422,7 @@ export const useVideoOverlayLayout = ({
       position: "absolute",
       left: baseHorizontalInsets,
       right: baseHorizontalInsets,
-      top: bottomButtonsTop,
+      top: hasBottomButtons ? bottomButtonsTop : safeBottomAnchor,
     };
 
     const sideRailStyle: ViewStyle = {
@@ -323,6 +460,12 @@ export const useVideoOverlayLayout = ({
       }
     }
 
+    // 竖屏全屏：右侧栏需要更贴近右侧，避免与进度条交叉
+    if (variant === "mobilePortraitFullscreen") {
+      // 右移贴边（避免与进度条交叉），保留安全区
+      sideRailStyle.right = Math.max(12 + insetRight, 12);
+    }
+
     return {
       container: baseContainer,
       topBar: topBarStyle,
@@ -332,9 +475,27 @@ export const useVideoOverlayLayout = ({
       bottomButtons: bottomButtonsStyle,
       sideRail: sideRailStyle,
     };
-  }, [deviceType, insets.bottom, insets.left, insets.right, insets.top, isFullscreen, layout, measurements, sectionHeights.bottomButtons,
-    sectionHeights.bottomControls, sectionHeights.centerControls, sectionHeights.progress, sectionHeights.sideRail, sectionHeights.topBar,
-    variant, videoRect]);
+  }, [
+    deviceType,
+    insets.bottom,
+    insets.left,
+    insets.right,
+    insets.top,
+    isFullscreen,
+    layout,
+    measurements,
+    sectionHeights.bottomButtons,
+    sectionHeights.bottomControls,
+    sectionHeights.centerControls,
+    sectionHeights.progress,
+    sectionHeights.sideRail,
+    sectionHeights.topBar,
+    spacing.bottomPadding,
+    spacing.stackGap,
+    spacing.topPadding,
+    variant,
+    videoRect,
+  ]);
 
   return {
     measurements,
@@ -342,20 +503,6 @@ export const useVideoOverlayLayout = ({
     handleContainerLayout,
     getSectionLayoutHandler,
   };
-};
-
-const horizontalInsetBias = (layout: OverlayLayout, deviceType: "mobile" | "tablet", variant: OverlayVariant): number => {
-  if (layout === "landscape" && deviceType === "mobile") {
-    if (variant === "mobileLandscape") {
-      return 12;
-    }
-  }
-  if (layout === "portrait" && deviceType === "mobile") {
-    if (variant === "mobilePortraitFullscreen") {
-      return 6;
-    }
-  }
-  return 0;
 };
 
 export type { VideoOverlayLayoutResult, VideoOverlayMeasurements, VideoOverlayStyles, SectionKey };

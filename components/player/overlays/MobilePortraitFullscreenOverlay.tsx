@@ -99,18 +99,17 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   centerControls: {
-    paddingHorizontal: 36,
-    paddingVertical: 16,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.38)",
+    // 背景透明，尺寸随按钮自适配
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   progressSection: {
     paddingHorizontal: 28,
-    marginBottom: 12,
   },
   bottomButtons: {
     paddingHorizontal: 18,
-    paddingBottom: 20,
+    // 避免与安全区 padding 叠加导致整体高度过大，推高进度条
+    paddingBottom: 0,
   },
 });
 

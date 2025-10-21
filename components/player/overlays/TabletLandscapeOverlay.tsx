@@ -98,27 +98,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   centerControls: {
-    paddingHorizontal: 40,
-    paddingVertical: 20,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.28)",
+    // 播放栏背景透明，尺寸随按钮个数自适配
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     alignSelf: "center",
-    maxWidth: 520,
-    width: "70%",
   },
   progressSection: {
     paddingHorizontal: 60,
-    marginBottom: 18,
-    alignSelf: "center",
-    maxWidth: 640,
-    width: "80%",
+    // 让父级 OverlayLayout 的左右约束决定宽度，避免被限定为半屏
+    alignSelf: "auto",
   },
   bottomButtons: {
     paddingHorizontal: 44,
     paddingBottom: 18,
-    alignSelf: "center",
-    maxWidth: 640,
-    width: "80%",
+    alignSelf: "auto",
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { ComponentProps } from "react";
+import React, { ComponentProps, forwardRef } from "react";
 import { StyledButton } from "./StyledButton";
 import { StyleSheet, View, Text } from "react-native";
 
@@ -7,27 +7,26 @@ type MediaButtonProps = ComponentProps<typeof StyledButton> & {
   forceHighlighted?: boolean;
 };
 
-export const MediaButton = ({
-  timeLabel,
-  forceHighlighted = false,
-  style,
-  isSelected,
-  ...rest
-}: MediaButtonProps) => {
-  const finalSelected = forceHighlighted || isSelected;
+export const MediaButton = forwardRef<View, MediaButtonProps>(
+  ({ timeLabel, forceHighlighted = false, style, isSelected, ...rest }, ref) => {
+    const finalSelected = forceHighlighted || isSelected;
 
-  return (
-    <View>
-      <StyledButton
-        {...rest}
-        style={[styles.mediaControlButton, style]}
-        variant="ghost"
-        isSelected={finalSelected}
-      />
-      {timeLabel && <Text style={styles.timeLabel}>{timeLabel}</Text>}
-    </View>
-  );
-};
+    return (
+      <View>
+        <StyledButton
+          {...rest}
+          ref={ref}
+          style={[styles.mediaControlButton, style]}
+          variant="ghost"
+          isSelected={finalSelected}
+        />
+        {timeLabel && <Text style={styles.timeLabel}>{timeLabel}</Text>}
+      </View>
+    );
+  }
+);
+
+MediaButton.displayName = "MediaButton";
 
 const styles = StyleSheet.create({
   mediaControlButton: {

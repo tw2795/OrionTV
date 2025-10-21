@@ -95,17 +95,14 @@ const MobilePortraitOverlay: React.FC<OverlayComponentProps> = ({
 const styles = StyleSheet.create({
   topRow: {
     paddingHorizontal: 24,
-    marginTop: -6,
   },
   centerControls: {
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    // 背景透明，尺寸随按钮自适配
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   progressSection: {
     paddingHorizontal: 24,
-    marginBottom: 8,
   },
   bottomButtons: {
     paddingHorizontal: 16,

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, findNodeHandle } from "react-native";
 import { MediaButton } from "@/components/MediaButton";
 
 import usePlayerStore from "@/stores/playerStore";
@@ -10,12 +10,18 @@ interface PlayerControlsProps {
   showControls: boolean;
   setShowControls: (show: boolean) => void;
   progressSlot?: React.ReactNode;
+  onBottomFocus?: () => void;
+  nextFocusUpTarget?: number | null;
+  onRegisterFirstButton?: (handle: number | null) => void;
 }
 
 export const PlayerControls: React.FC<PlayerControlsProps> = ({
   showControls,
   setShowControls: _setShowControls,
   progressSlot,
+  onBottomFocus,
+  nextFocusUpTarget,
+  onRegisterFirstButton,
 }) => {
   const {
     currentEpisodeIndex,
@@ -36,6 +42,16 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   const [focusResetKey, setFocusResetKey] = useState(0);
   const isTouchLayout = deviceType !== "tv";
   const highlightButtons = isTouchLayout && showControls;
+
+  const registerFirstButton = useCallback(
+    (node: View | null) => {
+      if (!onRegisterFirstButton) return;
+      const handle = node ? findNodeHandle(node) : null;
+      onRegisterFirstButton(handle);
+    },
+    [onRegisterFirstButton]
+  );
+  const nextFocusUp = nextFocusUpTarget ?? undefined;
 
   useEffect(() => {
     if (deviceType === "tv" && showControls) {
@@ -65,11 +81,13 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         >
           <MediaButton
             key={`next-${focusResetKey}`}
+            ref={registerFirstButton}
             onPress={onPlayNextEpisode}
             disabled={!hasNextEpisode}
-            hasTVPreferredFocus={deviceType === "tv"}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={[styles.buttonText, !hasNextEpisode && styles.buttonTextDisabled]}>下集</Text>
           </MediaButton>
@@ -79,6 +97,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             disabled={!hasPreviousEpisode}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={[styles.buttonText, !hasPreviousEpisode && styles.buttonTextDisabled]}>上集</Text>
           </MediaButton>
@@ -87,6 +107,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             onPress={() => setShowEpisodeModal(true)}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={styles.buttonText}>选集</Text>
           </MediaButton>
@@ -96,6 +118,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             timeLabel={playbackRate !== 1.0 ? `${playbackRate}x` : undefined}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={styles.buttonText}>倍速</Text>
           </MediaButton>
@@ -104,6 +128,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             onPress={() => setShowSourceModal(true)}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={styles.buttonText}>换源</Text>
           </MediaButton>
@@ -113,6 +139,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             timeLabel={introEndTime ? formatTime(introEndTime) : undefined}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={styles.buttonText}>片头</Text>
           </MediaButton>
@@ -122,6 +150,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
             timeLabel={outroStartTime ? formatTime(outroStartTime) : undefined}
             forceHighlighted={highlightButtons}
             style={isTouchLayout ? styles.mobileControlButton : undefined}
+            onFocus={onBottomFocus}
+            nextFocusUp={nextFocusUp}
           >
             <Text style={styles.buttonText}>片尾</Text>
           </MediaButton>

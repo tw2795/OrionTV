@@ -98,15 +98,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   centerControls: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.32)",
+    // 背景透明，尺寸随按钮自适配
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     alignSelf: "center",
   },
   progressSection: {
     paddingHorizontal: 40,
-    marginBottom: 16,
     alignSelf: "center",
   },
   bottomButtons: {

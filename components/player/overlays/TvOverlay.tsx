@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import type { GestureResponderHandlers, LayoutChangeEvent } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View, findNodeHandle } from "react-native";
+import type { GestureResponderHandlers, LayoutChangeEvent, View as RNView } from "react-native";
 import type { AVPlaybackStatus, AVPlaybackStatusSuccess } from "expo-av";
 
 import { CenterPlayOverlay } from "@/components/CenterPlayOverlay";
@@ -48,6 +48,11 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
   const systemStatus = useSystemStatus();
 
   const [progressWidth, setProgressWidth] = useState(0);
+  const [focusZone, setFocusZone] = useState<"center" | "top" | "bottom">("center");
+  const playButtonRef = useRef<RNView>(null);
+  const [playButtonHandle, setPlayButtonHandle] = useState<number | null>(null);
+  const [topFirstHandle, setTopFirstHandle] = useState<number | null>(null);
+  const [bottomFirstHandle, setBottomFirstHandle] = useState<number | null>(null);
 
   const loadedStatus = useMemo(() => toLoadedStatus(status), [status]);
   const durationMillis = loadedStatus?.durationMillis ?? 0;
@@ -87,6 +92,40 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
       sourceName: detail?.source_name ?? null,
     };
   }, [detail?.source_name, detail?.title, episodes, currentEpisodeIndex]);
+
+  useEffect(() => {
+    if (showControls) {
+      setFocusZone("center");
+    }
+  }, [showControls]);
+
+  useEffect(() => {
+    if (!showControls) {
+      setPlayButtonHandle(null);
+      setTopFirstHandle(null);
+      setBottomFirstHandle(null);
+      return;
+    }
+    const handle = playButtonRef.current ? findNodeHandle(playButtonRef.current) : null;
+    setPlayButtonHandle(handle ?? null);
+  }, [showControls, loadedStatus?.isPlaying]);
+
+  const handleCenterFocus = useCallback(() => setFocusZone("center"), []);
+  const handleTopFocus = useCallback(() => setFocusZone("top"), []);
+  const handleBottomFocus = useCallback(() => setFocusZone("bottom"), []);
+  const handleRegisterTop = useCallback((handle: number | null) => setTopFirstHandle(handle ?? null), []);
+  const handleRegisterBottom = useCallback((handle: number | null) => setBottomFirstHandle(handle ?? null), []);
+
+  const centerFocusProps = useMemo(
+    () => ({
+      hasTVPreferredFocus: focusZone === "center",
+      nextFocusUp: (topFirstHandle ?? playButtonHandle) ?? undefined,
+      nextFocusDown: (bottomFirstHandle ?? playButtonHandle) ?? undefined,
+      nextFocusLeft: playButtonHandle ?? undefined,
+      nextFocusRight: playButtonHandle ?? undefined,
+    }),
+    [focusZone, topFirstHandle, bottomFirstHandle, playButtonHandle],
+  );
 
   const playbackStateSnapshot: PlaybackStateSnapshot = useMemo(
     () => ({
@@ -148,10 +187,18 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
     <>
       {showControls && (
         <>
-          <CenterPlayOverlay />
+          <CenterPlayOverlay
+            ref={playButtonRef}
+            tvAutoFocus={focusZone === "center"}
+            onTVFocus={handleCenterFocus}
+            tvFocusProps={centerFocusProps}
+          />
           <PlayerControls
             showControls={showControls}
             setShowControls={setShowControls}
+            onBottomFocus={handleBottomFocus}
+            nextFocusUpTarget={playButtonHandle}
+            onRegisterFirstButton={handleRegisterBottom}
             progressSlot={
               <View style={styles.progressWrapper}>
                 <ProgressSection context={overlayContext} progress={progressPayload} />
@@ -167,6 +214,11 @@ const TvOverlay: React.FC<TvOverlayProps> = ({ showControls, setShowControls }) 
               controls={controls}
               showSettingsButton={false}
               showBatteryStatus={false}
+              focusConfig={{
+                nextFocusDown: playButtonHandle,
+                onActionFocus: handleTopFocus,
+                onRegisterFirstAction: handleRegisterTop,
+              }}
             />
           </View>
         </>
