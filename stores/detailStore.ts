@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { SearchResult, api } from "@/services/api";
+import { SearchResult, DoubanDetail, api } from "@/services/api";
 import { getResolutionFromM3U8 } from "@/services/m3u8";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { FavoriteManager } from "@/services/storage";
@@ -20,6 +20,8 @@ interface DetailState {
   controller: AbortController | null;
   isFavorited: boolean;
   failedSources: Set<string>; // 记录失败的source列表
+  doubanDetails: Record<string, DoubanDetail | null>;
+  doubanFetching: Set<string>;
 
   init: (q: string, preferredSource?: string, id?: string) => Promise<void>;
   setDetail: (detail: SearchResultWithResolution) => Promise<void>;
@@ -27,6 +29,7 @@ interface DetailState {
   toggleFavorite: () => Promise<void>;
   markSourceAsFailed: (source: string, reason: string) => void;
   getNextAvailableSource: (currentSource: string, episodeIndex: number) => SearchResultWithResolution | null;
+  fetchDoubanDetail: (doubanId?: number | string | null) => Promise<void>;
 }
 
 const useDetailStore = create<DetailState>((set, get) => ({
@@ -39,7 +42,9 @@ const useDetailStore = create<DetailState>((set, get) => ({
   allSourcesLoaded: false,
   controller: null,
   isFavorited: false,
-  failedSources: new Set(),
+  failedSources: new Set<string>(),
+  doubanDetails: {},
+  doubanFetching: new Set<string>(),
 
   init: async (q, preferredSource, id) => {
     const perfStart = performance.now();
@@ -60,6 +65,8 @@ const useDetailStore = create<DetailState>((set, get) => ({
       error: null,
       allSourcesLoaded: false,
       controller: newController,
+      doubanDetails: {},
+      doubanFetching: new Set<string>(),
     });
 
     const { videoSource } = useSettingsStore.getState();
@@ -107,6 +114,11 @@ const useDetailStore = create<DetailState>((set, get) => ({
           detail: state.detail ?? finalResults[0] ?? null,
         };
       });
+
+      const { detail: currentDetail, fetchDoubanDetail } = get();
+      if (currentDetail?.douban_id) {
+        void fetchDoubanDetail(currentDetail.douban_id);
+      }
     };
 
     try {
@@ -319,6 +331,10 @@ const useDetailStore = create<DetailState>((set, get) => ({
     const { source, id } = detail;
     const isFavorited = await FavoriteManager.isFavorited(source, id.toString());
     set({ isFavorited });
+    const { fetchDoubanDetail } = get();
+    if (detail.douban_id) {
+      void fetchDoubanDetail(detail.douban_id);
+    }
   },
 
   abort: () => {
@@ -398,8 +414,45 @@ const useDetailStore = create<DetailState>((set, get) => ({
     
     const selectedSource = sortedSources[0];
     logger.info(`[SOURCE_SELECTION] Selected fallback source: ${selectedSource.source} (${selectedSource.source_name}) with resolution: ${selectedSource.resolution || 'unknown'}`);
-    
+
     return selectedSource;
+  },
+
+  fetchDoubanDetail: async (doubanId) => {
+    if (!doubanId) return;
+    const doubanKey = String(doubanId);
+    const { doubanDetails, doubanFetching } = get();
+    if (Object.prototype.hasOwnProperty.call(doubanDetails, doubanKey) || doubanFetching.has(doubanKey)) {
+      return;
+    }
+
+    const nextFetching = new Set(doubanFetching);
+    nextFetching.add(doubanKey);
+    set({ doubanFetching: nextFetching });
+
+    try {
+      const { code, data } = await api.getDoubanDetail(doubanKey);
+      set((state) => ({
+        doubanDetails: {
+          ...state.doubanDetails,
+          [doubanKey]: code === 200 ? data : null,
+        },
+      }));
+    } catch (error) {
+      logger.warn(`[WARN] Fetch douban detail failed for id=${doubanKey}:`, error);
+      set((state) => ({
+        doubanDetails: {
+          ...state.doubanDetails,
+          [doubanKey]: null,
+        },
+      }));
+    } finally {
+      set((state) => {
+        const updatedFetching = new Set(state.doubanFetching);
+        updatedFetching.delete(doubanKey);
+        return { doubanFetching: updatedFetching };
+      });
+    }
   },
 }));
 

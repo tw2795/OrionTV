@@ -32,10 +32,26 @@ export const MobilePortraitPlayer: React.FC<MobilePortraitPlayerProps> = ({
   onToggleFullscreen,
 }) => {
   const { status, playEpisode, currentEpisodeIndex, episodes, loadVideo, setControlsLocked } = usePlayerStore();
-  const { detail, searchResults, setDetail } = useDetailStore();
+  const { detail, searchResults, setDetail, doubanDetails } = useDetailStore();
 
   const joinWithSlash = (values?: (string | null | undefined)[]) =>
     values?.map((item) => item?.trim()).filter((item): item is string => !!item && item.length > 0).join(" / ") ?? "";
+  const normalizeText = (value?: string | null) => {
+    const trimmed = value?.trim();
+    if (!trimmed || trimmed.toLowerCase() === "unknown") {
+      return "";
+    }
+    return trimmed;
+  };
+  const normalizeParagraph = (value?: string | null) => {
+    const trimmed = value?.replace(/\s+/g, " ").trim();
+    if (!trimmed || trimmed.toLowerCase() === "unknown") {
+      return "";
+    }
+    return trimmed;
+  };
+  const dashFallback = "--";
+  const doubanDetail = detail?.douban_id ? doubanDetails[String(detail.douban_id)] ?? null : null;
 
   const [activeTab, setActiveTab] = useState<TabKey>("episodes");
 
@@ -79,27 +95,28 @@ export const MobilePortraitPlayer: React.FC<MobilePortraitPlayerProps> = ({
     [currentEpisodeIndex, detail, loadVideo, playbackStatus, searchResults, setDetail]
   );
 
-  const genresLabel = joinWithSlash(detail?.genres);
+  const genresLabel = joinWithSlash(doubanDetail?.genres);
+  const typeCell = genresLabel || normalizeText(detail?.class) || dashFallback;
+  const yearCell = normalizeText(doubanDetail?.year) || normalizeText(detail?.year) || dashFallback;
+  const sourceCell = normalizeText(detail?.source_name) || dashFallback;
+  const categoryCell = normalizeText(detail?.type_name) || dashFallback;
+  // 竖屏信息首行：类型/年代/站源/分类，按豆瓣→搜索→占位降级
   const infoTags: { text: string; variant?: "source" }[] = [
-    {
-      text: genresLabel ? `类型：${genresLabel}` : detail?.class ? `类型：${detail.class}` : "类型未知",
-    },
-    { text: detail?.year ? `${detail.year}` : "年份未知" },
-    { text: detail?.source_name || "来源未知", variant: "source" },
-    { text: detail?.type_name ? `分类：${detail.type_name}` : "分类未知" },
+    { text: `类型：${typeCell}` },
+    { text: `年代：${yearCell}` },
+    { text: `站源：${sourceCell}`, variant: "source" },
+    { text: `分类：${categoryCell}` },
   ];
+  // 简介优先展示豆瓣剧情简介，其次使用搜索接口的简介，最后占位
+  const summaryContent =
+    normalizeParagraph(doubanDetail?.plot_summary) ||
+    normalizeParagraph(detail?.desc) ||
+    dashFallback;
 
-  const director =
-    joinWithSlash(detail?.directors) || (detail as any)?.director || "-";
-  const writer =
-    joinWithSlash(detail?.screenwriters) ||
-    (detail as any)?.writer ||
-    (detail as any)?.screenwriter ||
-    "-";
-  const actors = joinWithSlash(detail?.cast) || (detail as any)?.actor || "-";
-
-  const firstAired = detail?.first_aired?.trim();
-  const premiere = firstAired || "-";
+  const director = joinWithSlash(doubanDetail?.directors) || dashFallback;
+  const writer = joinWithSlash(doubanDetail?.screenwriters) || dashFallback;
+  const actors = joinWithSlash(doubanDetail?.cast) || dashFallback;
+  const premiere = normalizeText(doubanDetail?.first_aired) || dashFallback;
 
   useEffect(() => {
     setActiveTab("episodes");
@@ -148,7 +165,7 @@ export const MobilePortraitPlayer: React.FC<MobilePortraitPlayerProps> = ({
       case "summary":
         return (
           <ScrollView style={styles.summaryContainer} nestedScrollEnabled>
-            <Text style={styles.summaryText}>{detail?.plot_summary || "暂无简介"}</Text>
+            <Text style={styles.summaryText}>{summaryContent}</Text>
           </ScrollView>
         );
       default:

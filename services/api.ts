@@ -13,42 +13,45 @@ export interface DoubanResponse {
   list: DoubanItem[];
 }
 
-export interface VideoDetail {
+export interface DoubanDetail {
   id: string;
   title: string;
   poster: string;
-  source: string;
-  source_name: string;
-  desc?: string;
-  type?: string;
-  year?: string;
-  area?: string;
-  director?: string;
-  actor?: string;
-  remarks?: string;
+  rate: string;
+  year: string;
+  directors?: string[];
+  screenwriters?: string[];
+  cast?: string[];
+  genres?: string[];
+  countries?: string[];
+  languages?: string[];
+  episodes?: number;
+  episode_length?: number;
+  movie_duration?: number;
+  first_aired?: string;
+  plot_summary?: string;
+}
+
+export interface DoubanDetailResponse {
+  code: number;
+  message: string;
+  data: DoubanDetail;
 }
 
 export interface SearchResult {
-  id: number;
+  id: string;
   title: string;
   poster: string;
   episodes: string[];
+  episodes_titles: string[];
   source: string;
   source_name: string;
   class?: string;
   year: string;
   desc?: string;
   type_name?: string;
-  directors?: string[];
-  screenwriters?: string[];
-  cast?: string[];
-  first_aired?: string;
-  genres?: string[];
-  countries?: string[];
-  languages?: string[];
-  plot_summary?: string;
-  episode_length?: number;
-  rate?: string;
+  douban_id?: number;
+  remarks?: string;
 }
 
 export interface Favorite {
@@ -227,11 +230,16 @@ export class API {
     return response.json();
   }
 
+  async getDoubanDetail(id: string): Promise<DoubanDetailResponse> {
+    const url = `/api/douban/details?id=${encodeURIComponent(id)}`;
+    const response = await this._fetch(url);
+    return response.json();
+  }
+
   async searchVideo(query: string, resourceId: string, signal?: AbortSignal): Promise<{ results: SearchResult[] }> {
     const url = `/api/search/one?q=${encodeURIComponent(query)}&resourceId=${encodeURIComponent(resourceId)}`;
     const response = await this._fetch(url, { signal });
-    const { results } = await response.json();
-    return { results: results.filter((item: any) => item.title === query )};
+    return response.json();
   }
 
   async getResources(signal?: AbortSignal): Promise<ApiSite[]> {
@@ -240,11 +248,6 @@ export class API {
     return response.json();
   }
 
-  async getVideoDetail(source: string, id: string, signal?: AbortSignal): Promise<VideoDetail> {
-    const url = `/api/detail?source=${source}&id=${id}`;
-    const response = await this._fetch(url, { signal });
-    return response.json();
-  }
 }
 
 // 默认实例
