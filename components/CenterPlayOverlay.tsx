@@ -25,6 +25,8 @@ export const CenterPlayOverlay = React.forwardRef<RNView, CenterPlayOverlayProps
     const { deviceType } = useResponsiveLayout();
     const isTV = deviceType === "tv";
 
+    const tvPlayButtonSize = useMemo(() => 80 * 1.5, []);
+
     if (!status?.isLoaded || !showControls) {
       return null;
     }
@@ -34,7 +36,6 @@ export const CenterPlayOverlay = React.forwardRef<RNView, CenterPlayOverlayProps
     const isPaused = !status.isPlaying;
 
     const overlayPointerEvents = isTV ? "box-none" : isPaused ? "box-none" : "none";
-    const tvPlayButtonSize = useMemo(() => 80 * 1.5, []);
 
     const focusableProps = {
       hasTVPreferredFocus: tvFocusProps?.hasTVPreferredFocus ?? tvAutoFocus,

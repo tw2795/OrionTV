@@ -9,6 +9,7 @@ interface UseVideoHandlersProps {
   initialPosition: number;
   introEndTime?: number;
   playbackRate: number;
+  shouldPlay: boolean;
   handlePlaybackStatusUpdate: (status: any) => void;
   deviceType: string;
   detail?: { poster?: string };
@@ -20,6 +21,7 @@ export const useVideoHandlers = ({
   initialPosition,
   introEndTime,
   playbackRate,
+  shouldPlay,
   handlePlaybackStatusUpdate,
   deviceType,
   detail,
@@ -111,11 +113,13 @@ export const useVideoHandlers = ({
     onError,
     // 自定义控制层覆盖所有设备，因此禁用原生控件以避免重复 UI
     useNativeControls: false,
-    shouldPlay: true,
+    // 根据当前状态决定是否自动播放，避免暂停切换场景被意外恢复
+    shouldPlay,
   }), [
     currentEpisode?.url,
     detail?.poster,
     playbackRate,
+    shouldPlay,
     handlePlaybackStatusUpdate,
     onLoad,
     onLoadStart,

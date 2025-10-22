@@ -59,7 +59,6 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
     }
   }, [deviceType, showControls]);
 
-  const currentEpisode = episodes[currentEpisodeIndex];
   const hasNextEpisode = currentEpisodeIndex < (episodes.length || 0) - 1;
   const hasPreviousEpisode = currentEpisodeIndex > 0;
 

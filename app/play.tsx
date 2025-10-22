@@ -122,6 +122,8 @@ export default function PlayScreen() {
   } = usePlayerStore();
   const currentEpisode = usePlayerStore(selectCurrentEpisode);
 
+  const playbackShouldPlay = status?.isLoaded ? !!status.isPlaying : true;
+
   // 使用Video事件处理hook
   const { videoProps } = useVideoHandlers({
     videoRef,
@@ -129,13 +131,14 @@ export default function PlayScreen() {
     initialPosition,
     introEndTime,
     playbackRate,
+    shouldPlay: playbackShouldPlay,
     handlePlaybackStatusUpdate,
     deviceType,
     detail: detail || undefined,
   });
 
   // TV遥控器处理 - 总是调用hook，但根据设备类型决定是否使用结果
-  const tvRemoteHandler = useTVRemoteHandler();
+  useTVRemoteHandler();
 
   // 优化的动态样式 - 使用useMemo避免重复计算
   const dynamicStyles = useMemo(() => createResponsiveStyles(deviceType), [deviceType]);
@@ -328,6 +331,28 @@ export default function PlayScreen() {
         setShowControls(false);
         return true;
       }
+
+      if (
+        isBaselineMobile &&
+        (Platform.OS === "android" || Platform.OS === "ios") &&
+        (mobileFullscreenMode || !isPortrait)
+      ) {
+        (async () => {
+          try {
+            setControlsLocked(false);
+            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+            await ScreenOrientation.unlockAsync();
+          } catch (error) {
+            logger.warn(`[UI] Failed to restore portrait before exit`, error);
+          } finally {
+            handleToggleControlsVisibility(false);
+            setMobileFullscreenMode(false);
+            router.back();
+          }
+        })();
+        return true;
+      }
+
       router.back();
       return true;
     };
@@ -335,7 +360,16 @@ export default function PlayScreen() {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
 
     return () => backHandler.remove();
-  }, [showControls, setShowControls, router]);
+  }, [
+    showControls,
+    setShowControls,
+    router,
+    isBaselineMobile,
+    mobileFullscreenMode,
+    isPortrait,
+    handleToggleControlsVisibility,
+    setControlsLocked,
+  ]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;

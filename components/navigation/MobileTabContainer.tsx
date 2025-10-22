@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { Home, Search, Heart, Settings, Tv } from 'lucide-react-native';
+import { Home, Search, Settings, Tv } from 'lucide-react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors } from '@/constants/Colors';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { DeviceUtils } from '@/utils/DeviceUtils';
@@ -9,16 +10,51 @@ import { DeviceUtils } from '@/utils/DeviceUtils';
 interface TabItem {
   key: string;
   label: string;
-  icon: React.ComponentType<any>;
   route: string;
+  renderIcon: (options: { color: string; size: number; isActive: boolean }) => React.ReactNode;
 }
 
 const tabs: TabItem[] = [
-  { key: 'home', label: '首页', icon: Home, route: '/' },
-  { key: 'search', label: '搜索', icon: Search, route: '/search' },
-  { key: 'live', label: '直播', icon: Tv, route: '/live' },
-  { key: 'favorites', label: '收藏', icon: Heart, route: '/favorites' },
-  { key: 'settings', label: '设置', icon: Settings, route: '/settings' },
+  {
+    key: 'home',
+    label: '首页',
+    route: '/',
+    renderIcon: ({ color, size, isActive }) => (
+      <Home color={color} size={size} strokeWidth={isActive ? 2.5 : 2} />
+    ),
+  },
+  {
+    key: 'search',
+    label: '搜索',
+    route: '/search',
+    renderIcon: ({ color, size, isActive }) => (
+      <Search color={color} size={size} strokeWidth={isActive ? 2.5 : 2} />
+    ),
+  },
+  {
+    key: 'live',
+    label: '直播',
+    route: '/live',
+    renderIcon: ({ color, size, isActive }) => (
+      <Tv color={color} size={size} strokeWidth={isActive ? 2.5 : 2} />
+    ),
+  },
+  {
+    key: 'favorites',
+    label: '收藏',
+    route: '/favorites',
+    renderIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="star-outline" color={color} size={size} />
+    ),
+  },
+  {
+    key: 'settings',
+    label: '设置',
+    route: '/settings',
+    renderIcon: ({ color, size, isActive }) => (
+      <Settings color={color} size={size} strokeWidth={isActive ? 2.5 : 2} />
+    ),
+  },
 ];
 
 interface MobileTabContainerProps {
@@ -61,25 +97,21 @@ const MobileTabContainer: React.FC<MobileTabContainerProps> = ({ children }) => 
       {/* 底部导航栏 */}
       <View style={dynamicStyles.tabBar}>
         {filteredTabs.map((tab) => {
-          const isActive = isTabActive(tab.route);
-          const IconComponent = tab.icon;
-          
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[dynamicStyles.tab, isActive && dynamicStyles.activeTab]}
-              onPress={() => handleTabPress(tab.route)}
-              activeOpacity={0.7}
-            >
-              <IconComponent
-                size={20}
-                color={isActive ? Colors.dark.primary : '#888'}
-                strokeWidth={isActive ? 2.5 : 2}
-              />
-              <Text style={[
-                dynamicStyles.tabLabel,
-                isActive && dynamicStyles.activeTabLabel
-              ]}>
+        const isActive = isTabActive(tab.route);
+        const iconColor = isActive ? Colors.dark.primary : '#888';
+
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={[dynamicStyles.tab, isActive && dynamicStyles.activeTab]}
+            onPress={() => handleTabPress(tab.route)}
+            activeOpacity={0.7}
+          >
+            {tab.renderIcon({ color: iconColor, size: 20, isActive })}
+            <Text style={[
+              dynamicStyles.tabLabel,
+              isActive && dynamicStyles.activeTabLabel
+            ]}>
                 {tab.label}
               </Text>
             </TouchableOpacity>

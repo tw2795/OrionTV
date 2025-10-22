@@ -32,6 +32,7 @@ interface PlayerState {
   playbackRate: number;
   introEndTime?: number;
   outroStartTime?: number;
+  hasExistingPlayRecord: boolean;
   setVideoRef: (ref: RefObject<Video>) => void;
   loadVideo: (options: {
     source: string;
@@ -83,6 +84,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
   playbackRate: 1.0,
   introEndTime: undefined,
   outroStartTime: undefined,
+  hasExistingPlayRecord: false,
   _seekTimeout: undefined,
   _isRecordSaveThrottled: false,
 
@@ -219,7 +221,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
       }));
       const episodesMappingEnd = performance.now();
       logger.info(`[PERF] Episodes mapping (${episodes.length} episodes) took ${(episodesMappingEnd - episodesMappingStart).toFixed(2)}ms`);
-      
+
       set({
         isLoading: false,
         currentEpisodeIndex: episodeIndex,
@@ -228,11 +230,12 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
         episodes: mappedEpisodes,
         introEndTime: playRecord?.introEndTime || playerSettings?.introEndTime,
         outroStartTime: playRecord?.outroStartTime || playerSettings?.outroStartTime,
+        hasExistingPlayRecord: !!playRecord,
       });
-      
+
       const perfEnd = performance.now();
       logger.info(`[PERF] PlayerStore.loadVideo COMPLETE - total time: ${(perfEnd - perfStart).toFixed(2)}ms`);
-      
+
     } catch (error) {
       logger.debug("Failed to load play record", error);
       set({ isLoading: false });
@@ -262,7 +265,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   playPreviousEpisode: async () => {
-    const { currentEpisodeIndex, episodes } = get();
+    const { currentEpisodeIndex } = get();
     if (currentEpisodeIndex > 0) {
       get().playEpisode(currentEpisodeIndex - 1);
     } else {
@@ -389,23 +392,30 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
 
   _savePlayRecord: (updates = {}, options = {}) => {
     const { immediate = false } = options;
-    if (!immediate) {
-      if (get()._isRecordSaveThrottled) {
-        return;
-      }
-      set({ _isRecordSaveThrottled: true });
-      setTimeout(() => {
-        set({ _isRecordSaveThrottled: false });
-      }, 10000); // 10 seconds
+    const state = get();
+    const shouldThrottle = !immediate && state.hasExistingPlayRecord;
+    if (shouldThrottle && state._isRecordSaveThrottled) {
+      return;
     }
 
+    const { currentEpisodeIndex, episodes, status, introEndTime, outroStartTime } = state;
     const { detail } = useDetailStore.getState();
-    const { currentEpisodeIndex, episodes, status, introEndTime, outroStartTime } = get();
     if (detail && status?.isLoaded) {
+      if (shouldThrottle) {
+        set({ _isRecordSaveThrottled: true });
+        setTimeout(() => {
+          set({ _isRecordSaveThrottled: false });
+        }, 10000); // 10 seconds
+      }
+
       const existingRecord = {
         introEndTime,
         outroStartTime,
       };
+      if (!state.hasExistingPlayRecord) {
+        // 首次保存直接落盘，随后标记已有记录再进入节流逻辑
+        set({ hasExistingPlayRecord: true });
+      }
       PlayRecordManager.save(detail.source, detail.id.toString(), {
         title: detail.title,
         cover: detail.poster || "",
@@ -511,6 +521,7 @@ const usePlayerStore = create<PlayerState>((set, get) => ({
       playbackRate: 1.0,
       introEndTime: undefined,
       outroStartTime: undefined,
+      hasExistingPlayRecord: false,
     });
   },
 

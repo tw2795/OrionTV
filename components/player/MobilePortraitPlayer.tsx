@@ -101,11 +101,12 @@ export const MobilePortraitPlayer: React.FC<MobilePortraitPlayerProps> = ({
   const sourceCell = normalizeText(detail?.source_name) || dashFallback;
   const categoryCell = normalizeText(detail?.type_name) || dashFallback;
   // 竖屏信息首行：类型/年代/站源/分类，按豆瓣→搜索→占位降级
+  // 第一行原标签与数据映射：类型→typeCell，年代→yearCell，站源→sourceCell，分类→categoryCell；按产品要求仅显示内容值
   const infoTags: { text: string; variant?: "source" }[] = [
-    { text: `类型：${typeCell}` },
-    { text: `年代：${yearCell}` },
-    { text: `站源：${sourceCell}`, variant: "source" },
-    { text: `分类：${categoryCell}` },
+    { text: typeCell },
+    { text: yearCell },
+    { text: sourceCell, variant: "source" },
+    { text: categoryCell },
   ];
   // 简介优先展示豆瓣剧情简介，其次使用搜索接口的简介，最后占位
   const summaryContent =

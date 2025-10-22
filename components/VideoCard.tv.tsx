@@ -173,20 +173,6 @@ const VideoCard = forwardRef<View, VideoCardProps>(
       });
     };
 
-    // 删除模式下点击删除 Layer
-    const handleDeleteClick = () => {
-      showDeleteConfirmation({
-        source,
-        id,
-        title,
-        type: deleteType,
-        onSuccess: () => {
-          if (onRecordDeleted) {
-            onRecordDeleted();
-          }
-        },
-      });
-    };
 
     // 是否是继续观看的视频
     const isContinueWatching = progress !== undefined && progress > 0 && progress < 1;
